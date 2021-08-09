@@ -24,6 +24,17 @@ func CheckChange(s *discordgo.Session) {
 	}
 
 	for _, v := range watchList {
+		// 先看是否已通知過
+		redisRes, err := redis.Get(ctx, "watch_list:"+v)
+		if err != nil {
+			s.ChannelMessageSend("872317320729616395", fmt.Sprintf("取得紀錄時錯誤: %v", err))
+			return
+		}
+
+		if redisRes != "" {
+			continue
+		}
+
 		change, err := GetChange(v)
 		if err != nil {
 			s.ChannelMessageSend("872317320729616395", fmt.Sprintf("取得漲跌幅時錯誤: %v", err))
@@ -31,17 +42,6 @@ func CheckChange(s *discordgo.Session) {
 		}
 
 		if change > 3 || change < -3 {
-			// 先看是否已通知過
-			res, err := redis.Get(ctx, "watch_list:"+v)
-			if err != nil {
-				s.ChannelMessageSend("872317320729616395", fmt.Sprintf("取得紀錄時錯誤: %v", err))
-				return
-			}
-
-			if res != "" {
-				continue
-			}
-
 			_, err = s.ChannelMessageSendComplex("872317320729616395", &discordgo.MessageSend{
 				Content: fmt.Sprintf("<@512265930735222795> 警告: %s 今日漲跌幅為 %v %s", v, change, "%"),
 				AllowedMentions: &discordgo.MessageAllowedMentions{
