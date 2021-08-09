@@ -4,6 +4,7 @@ import (
 	"context"
 	"discordBot/model/redis"
 	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -53,7 +54,7 @@ func CheckChange(s *discordgo.Session) {
 			}
 
 			// 寫入紀錄已通知
-			err = redis.Set(ctx, "watch_list:"+v, "true")
+			err = redis.Set(ctx, "watch_list:"+v, "true", time.Hour*8)
 			if err != nil {
 				s.ChannelMessageSend("872317320729616395", fmt.Sprintf("寫入紀錄時錯誤: %v", err))
 				return

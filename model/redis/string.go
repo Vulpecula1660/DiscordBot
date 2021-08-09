@@ -13,13 +13,13 @@ const (
 )
 
 // Set : 資料寫入Redis中
-func Set(ctx context.Context, key string, value interface{}) error {
+func Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 
 	return CreateConn().Set(
 		ctx,
 		key,
 		value,
-		time.Minute*30,
+		expiration,
 	).Err()
 }
 

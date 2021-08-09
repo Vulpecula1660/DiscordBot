@@ -5,6 +5,7 @@ import (
 	"discordBot/model/redis"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -24,6 +25,7 @@ func SetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 			context.Background(),
 			key,
 			value,
+			time.Hour*0,
 		)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
