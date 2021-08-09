@@ -26,7 +26,8 @@ func SetList(s *discordgo.Session, m *discordgo.MessageCreate) {
 			value,
 		)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("error:%v", err))
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			return
 		}
 
 		res := fmt.Sprintf("設定 key: %s, value: %s", key, value)
@@ -51,7 +52,8 @@ func GetList(s *discordgo.Session, m *discordgo.MessageCreate) {
 			-1,
 		)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("error:%v", err))
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			return
 		}
 
 		res := fmt.Sprintf("取得 key: %s, value: %s", key, value)
@@ -78,7 +80,8 @@ func DelListValue(s *discordgo.Session, m *discordgo.MessageCreate) {
 			value,
 		)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("error:%v", err))
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			return
 		}
 
 		res := fmt.Sprintf("從 key: %s 中刪除 value: %s", key, value)

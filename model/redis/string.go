@@ -2,7 +2,6 @@ package redis
 
 import (
 	"context"
-	"os"
 	"time"
 
 	redis "github.com/go-redis/redis/v8"
@@ -15,9 +14,8 @@ const (
 
 // Set : 資料寫入Redis中
 func Set(ctx context.Context, key string, value interface{}) error {
-	redisName := os.Getenv("RedisName")
 
-	return GetConn(redisName, redisDB).Set(
+	return CreateConn().Set(
 		ctx,
 		key,
 		value,
@@ -27,9 +25,8 @@ func Set(ctx context.Context, key string, value interface{}) error {
 
 // Get : 從 Redis 取得資料
 func Get(ctx context.Context, key string) (string, error) {
-	redisName := os.Getenv("RedisName")
 
-	data, err := GetConn(redisName, redisDB).Get(
+	data, err := CreateConn().Get(
 		ctx,
 		key,
 	).Result()
@@ -48,9 +45,8 @@ func Get(ctx context.Context, key string) (string, error) {
 
 // Del :
 func Del(ctx context.Context, key string) error {
-	redisName := os.Getenv("RedisName")
 
-	return GetConn(redisName, redisDB).
+	return CreateConn().
 		Del(
 			ctx,
 			key,

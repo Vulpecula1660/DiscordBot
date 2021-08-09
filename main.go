@@ -31,6 +31,10 @@ func main() {
 	dg.AddHandler(handler.SetList)
 	dg.AddHandler(handler.GetList)
 	dg.AddHandler(handler.DelListValue)
+	handler.Task(dg)
+
+	dg.AddHandler(handler.SetStock)
+	dg.AddHandler(handler.GetStock)
 
 	// In this example, we only care about receiving message events.
 	dg.Identify.Intents = discordgo.IntentsGuildMessages

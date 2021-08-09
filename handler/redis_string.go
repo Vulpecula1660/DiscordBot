@@ -26,7 +26,7 @@ func SetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 			value,
 		)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("error:%v", err))
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
 		}
 
 		res := fmt.Sprintf("設定 key: %s, value: %s", key, value)
@@ -49,7 +49,7 @@ func GetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 			key,
 		)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("error:%v", err))
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
 		}
 
 		res := fmt.Sprintf("取得 key: %s, value: %s", key, value)

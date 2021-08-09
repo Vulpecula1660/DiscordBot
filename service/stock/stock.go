@@ -65,9 +65,42 @@ func GetChange(stock string) (float32, error) {
 		return 0, err
 	}
 
-	if *res.C == 0 {
+	if res.GetC() == 0 {
 		return 0, fmt.Errorf("搜尋失敗")
 	}
 
 	return *res.Dp, err
+}
+
+type CalculateInput struct {
+	Symbol string
+	Units  float64
+	Price  float64
+}
+
+func Calculate(ctx context.Context, input *CalculateInput) (value, profit float64, err error) {
+
+	key := os.Getenv("APIKey")
+
+	cfg := finnhub.NewConfiguration()
+	cfg.AddDefaultHeader("X-Finnhub-Token", key)
+	finnhubClient := finnhub.NewAPIClient(cfg).DefaultApi
+
+	res, _, err := finnhubClient.Quote(ctx).Symbol(input.Symbol).Execute()
+	if err != nil {
+		return 0, 0, err
+	}
+
+	c := res.GetC()
+
+	if c == 0 {
+		return 0, 0, fmt.Errorf("搜尋失敗")
+	}
+
+	cost := input.Units * input.Price
+	value = input.Units * float64(c)
+
+	profit = value - cost
+
+	return value, profit, nil
 }
