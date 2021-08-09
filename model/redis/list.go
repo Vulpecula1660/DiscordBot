@@ -9,7 +9,7 @@ import (
 // RPush : 資料寫入 List 表尾
 func RPush(ctx context.Context, key string, value interface{}) error {
 
-	return CreateConn().RPush(
+	return GetConn("Redis").RPush(
 		ctx,
 		key,
 		value,
@@ -19,7 +19,7 @@ func RPush(ctx context.Context, key string, value interface{}) error {
 // LPos : 找資料在 List 的 index
 func LPos(ctx context.Context, key string, value string) (int64, error) {
 
-	return CreateConn().LPos(
+	return GetConn("Redis").LPos(
 		ctx,
 		key,
 		value,
@@ -33,7 +33,7 @@ func LPos(ctx context.Context, key string, value string) (int64, error) {
 // LLen : 返回列表 key 的長度
 func LLen(ctx context.Context, key string) (int64, error) {
 
-	return CreateConn().LLen(
+	return GetConn("Redis").LLen(
 		ctx,
 		key,
 	).Result()
@@ -42,7 +42,7 @@ func LLen(ctx context.Context, key string) (int64, error) {
 // LRange : 返回列表 key 中指定區間內的元素，區間以 start 和 stop 指定 (全部 start 0 stop -1)
 func LRange(ctx context.Context, key string, start, stop int64) ([]string, error) {
 
-	return CreateConn().LRange(
+	return GetConn("Redis").LRange(
 		ctx,
 		key,
 		start,
@@ -53,7 +53,7 @@ func LRange(ctx context.Context, key string, start, stop int64) ([]string, error
 // LRem : 從列表 key 中刪除前 count 個數等於 value 的元素，count = 0 移除所有值為 value 的元素
 func LRem(ctx context.Context, key string, count int64, value interface{}) error {
 
-	return CreateConn().LRem(
+	return GetConn("Redis").LRem(
 		ctx,
 		key,
 		count,

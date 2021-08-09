@@ -15,7 +15,7 @@ const (
 // Set : 資料寫入Redis中
 func Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 
-	return CreateConn().Set(
+	return GetConn("Redis").Set(
 		ctx,
 		key,
 		value,
@@ -26,7 +26,7 @@ func Set(ctx context.Context, key string, value interface{}, expiration time.Dur
 // Get : 從 Redis 取得資料
 func Get(ctx context.Context, key string) (string, error) {
 
-	data, err := CreateConn().Get(
+	data, err := GetConn("Redis").Get(
 		ctx,
 		key,
 	).Result()
@@ -46,7 +46,7 @@ func Get(ctx context.Context, key string) (string, error) {
 // Del :
 func Del(ctx context.Context, key string) error {
 
-	return CreateConn().
+	return GetConn("Redis").
 		Del(
 			ctx,
 			key,

@@ -43,7 +43,7 @@ func CheckChange(s *discordgo.Session) {
 
 		if change > 3 || change < -3 {
 			_, err = s.ChannelMessageSendComplex("872317320729616395", &discordgo.MessageSend{
-				Content: fmt.Sprintf("<@512265930735222795> 警告: %s 今日漲跌幅為 %v %s", v, change, "%"),
+				Content: fmt.Sprintf("<@512265930735222795> 警告: %s 今日漲跌幅為 %.2f %s", v, change, "%"),
 				AllowedMentions: &discordgo.MessageAllowedMentions{
 					Parse: []discordgo.AllowedMentionType{discordgo.AllowedMentionTypeUsers},
 				},
