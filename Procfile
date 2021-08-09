@@ -1,1 +1,1 @@
-worker: sudo chmode -R 777 ./discordBot && ./discordBot
+worker: chmod 777 ./discordBot && ./discordBot
