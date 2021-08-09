@@ -1,1 +1,1 @@
-worker: ./discordBot
+worker: go run main.go
