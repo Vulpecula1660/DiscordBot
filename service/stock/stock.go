@@ -3,28 +3,8 @@ package stock
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
-
-	finnhub "github.com/Finnhub-Stock-API/finnhub-go/v2"
 )
-
-type QuoteRes struct {
-	// Open price of the day
-	O *float32 `json:"o,omitempty"`
-	// High price of the day
-	H *float32 `json:"h,omitempty"`
-	// Low price of the day
-	L *float32 `json:"l,omitempty"`
-	// Current price
-	C *float32 `json:"c,omitempty"`
-	// Previous close price
-	Pc *float32 `json:"pc,omitempty"`
-	// Change
-	D *float32 `json:"d,omitempty"`
-	// Percent change
-	Dp *float32 `json:"dp,omitempty"`
-}
 
 func Quote(message string) (string, error) {
 
@@ -32,11 +12,7 @@ func Quote(message string) (string, error) {
 
 	symbol := strings.ToUpper(strSlice[1])
 
-	key := os.Getenv("APIKey")
-
-	cfg := finnhub.NewConfiguration()
-	cfg.AddDefaultHeader("X-Finnhub-Token", key)
-	finnhubClient := finnhub.NewAPIClient(cfg).DefaultApi
+	finnhubClient := GetConn("finnhub")
 
 	res, _, err := finnhubClient.Quote(context.Background()).Symbol(symbol).Execute()
 	if err != nil {
@@ -53,11 +29,7 @@ func Quote(message string) (string, error) {
 }
 
 func GetChange(stock string) (float32, error) {
-	key := os.Getenv("APIKey")
-
-	cfg := finnhub.NewConfiguration()
-	cfg.AddDefaultHeader("X-Finnhub-Token", key)
-	finnhubClient := finnhub.NewAPIClient(cfg).DefaultApi
+	finnhubClient := GetConn("finnhub")
 
 	res, _, err := finnhubClient.Quote(context.Background()).Symbol(stock).Execute()
 
@@ -80,11 +52,7 @@ type CalculateInput struct {
 
 func Calculate(ctx context.Context, input *CalculateInput) (value, profit float64, err error) {
 
-	key := os.Getenv("APIKey")
-
-	cfg := finnhub.NewConfiguration()
-	cfg.AddDefaultHeader("X-Finnhub-Token", key)
-	finnhubClient := finnhub.NewAPIClient(cfg).DefaultApi
+	finnhubClient := GetConn("finnhub")
 
 	res, _, err := finnhubClient.Quote(ctx).Symbol(input.Symbol).Execute()
 	if err != nil {
