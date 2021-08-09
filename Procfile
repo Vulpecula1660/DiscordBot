@@ -1,1 +1,0 @@
-worker: chmod 777 ./discordBot && ./discordBot
