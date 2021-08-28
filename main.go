@@ -14,7 +14,7 @@ import (
 func main() {
 	token := os.Getenv("DCToken")
 
-	// Create a new Discord session using the provided bot token.
+	// creates a new Discord session
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		fmt.Println("error creating Discord session,", err)
@@ -22,24 +22,27 @@ func main() {
 	}
 
 	// Register the messageCreate func as a callback for MessageCreate events.
+	// 股票指令
 	dg.AddHandler(handler.Quote)
-	dg.AddHandler(handler.Cron)
 
+	// Redis 指令
 	dg.AddHandler(handler.SetRedis)
 	dg.AddHandler(handler.GetRedis)
-
 	dg.AddHandler(handler.SetList)
 	dg.AddHandler(handler.GetList)
 	dg.AddHandler(handler.DelListValue)
-	handler.Task(dg)
 
+	// DB 指令
 	dg.AddHandler(handler.SetStock)
 	dg.AddHandler(handler.GetStock)
 
-	// In this example, we only care about receiving message events.
+	// 定時排程
+	handler.Task(dg)
+
+	// 只監聽訊息
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
 
-	// Open a websocket connection to Discord and begin listening.
+	// 開啟連線
 	err = dg.Open()
 	if err != nil {
 		fmt.Println("error opening connection,", err)

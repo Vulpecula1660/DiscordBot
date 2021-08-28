@@ -17,6 +17,10 @@ func SetList(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.HasPrefix(m.Content, "$setList") {
 		strSlice := strings.Split(m.Content, " ")
 
+		if len(strSlice) != 3 {
+			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+		}
+
 		key := strSlice[1]
 		value := strSlice[2]
 
@@ -42,6 +46,10 @@ func GetList(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if strings.HasPrefix(m.Content, "$getList") {
 		strSlice := strings.Split(m.Content, " ")
+
+		if len(strSlice) != 2 {
+			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+		}
 
 		key := strSlice[1]
 
@@ -69,6 +77,10 @@ func DelListValue(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if strings.HasPrefix(m.Content, "$delListValue") {
 		strSlice := strings.Split(m.Content, " ")
+
+		if len(strSlice) != 3 {
+			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+		}
 
 		key := strSlice[1]
 		value := strSlice[2]

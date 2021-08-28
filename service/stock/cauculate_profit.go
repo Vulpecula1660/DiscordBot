@@ -56,6 +56,7 @@ func CalculateProfit(s *discordgo.Session) {
 		return
 	}
 
+	// string to float64
 	yesterdayTotalValueFloat, err := strconv.ParseFloat(yesterdayTotalValue, 64)
 	if err != nil {
 		s.ChannelMessageSend("872317320729616395", fmt.Sprintf("string to float64 錯誤: %v", err))
@@ -65,6 +66,7 @@ func CalculateProfit(s *discordgo.Session) {
 	todayProfit := totalValue - yesterdayTotalValueFloat
 
 	oldMoney := []float64{totalCost, totalValue, totalProfit, todayProfit}
+	// 換算幣值
 	newMoney, err := exchange.ConvertExchange(oldMoney)
 	if err != nil {
 		s.ChannelMessageSend("872317320729616395", fmt.Sprintf("換算匯率錯誤: %v", err))

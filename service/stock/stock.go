@@ -6,9 +6,15 @@ import (
 	"strings"
 )
 
+// Quote : 查詢標的
 func Quote(message string) (string, error) {
 
+	// example : $+ TSLA
 	strSlice := strings.Split(message, "$+")
+
+	if len(strSlice) != 2 {
+		return "", fmt.Errorf("參數錯誤")
+	}
 
 	symbol := strings.ToUpper(strSlice[1])
 
@@ -19,7 +25,8 @@ func Quote(message string) (string, error) {
 		return "", err
 	}
 
-	if *res.C == 0 {
+	// GetC : Get Current price
+	if res.GetC() == 0 {
 		return "", fmt.Errorf("搜尋失敗")
 	}
 
@@ -28,6 +35,7 @@ func Quote(message string) (string, error) {
 	return resStr1, err
 }
 
+// GetChange : 取得漲跌幅
 func GetChange(stock string) (float32, error) {
 	finnhubClient := GetConn("finnhub")
 
@@ -37,11 +45,13 @@ func GetChange(stock string) (float32, error) {
 		return 0, err
 	}
 
+	// GetC : Get Current price
 	if res.GetC() == 0 {
 		return 0, fmt.Errorf("搜尋失敗")
 	}
 
-	return *res.Dp, err
+	// GetDp : Get Percent change
+	return res.GetDp(), err
 }
 
 type CalculateInput struct {
@@ -50,6 +60,7 @@ type CalculateInput struct {
 	Price  float64
 }
 
+// Calculate : 計算成本, 損益
 func Calculate(ctx context.Context, input *CalculateInput) (value, profit float64, err error) {
 
 	finnhubClient := GetConn("finnhub")
@@ -59,15 +70,20 @@ func Calculate(ctx context.Context, input *CalculateInput) (value, profit float6
 		return 0, 0, err
 	}
 
+	// Current price
 	c := res.GetC()
 
 	if c == 0 {
 		return 0, 0, fmt.Errorf("搜尋失敗")
 	}
 
+	// 成本
 	cost := input.Units * input.Price
+
+	// 市場價值
 	value = input.Units * float64(c)
 
+	// 損益
 	profit = value - cost
 
 	return value, profit, nil

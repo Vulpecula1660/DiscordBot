@@ -5,7 +5,6 @@ import (
 	"discordBot/model/redis"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -18,6 +17,10 @@ func SetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.HasPrefix(m.Content, "$setRedis") {
 		strSlice := strings.Split(m.Content, " ")
 
+		if len(strSlice) != 3 {
+			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+		}
+
 		key := strSlice[1]
 		value := strSlice[2]
 
@@ -25,13 +28,14 @@ func SetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 			context.Background(),
 			key,
 			value,
-			time.Hour*0,
+			0, // 無限時
 		)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
 		}
 
 		res := fmt.Sprintf("設定 key: %s, value: %s", key, value)
+
 		s.ChannelMessageSend(m.ChannelID, res)
 	}
 }
@@ -43,6 +47,10 @@ func GetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if strings.HasPrefix(m.Content, "$getRedis") {
 		strSlice := strings.Split(m.Content, " ")
+
+		if len(strSlice) != 2 {
+			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+		}
 
 		key := strSlice[1]
 

@@ -9,9 +9,11 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// CheckChange : 檢查漲跌幅
 func CheckChange(s *discordgo.Session) {
 	ctx := context.Background()
 
+	// Redis 取出資料
 	watchList, err := redis.LRange(
 		ctx,
 		"watch_list",

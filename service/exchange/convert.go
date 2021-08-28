@@ -6,13 +6,17 @@ import (
 	"net/http"
 )
 
-type apiInfo struct {
-	USDTWD usdtwd `json:"USDTWD"`
-}
-type usdtwd struct {
-	Exrate float64 `json:"Exrate"`
-}
+type (
+	apiInfo struct {
+		USDTWD usdtwd `json:"USDTWD"`
+	}
 
+	usdtwd struct {
+		Exrate float64 `json:"Exrate"`
+	}
+)
+
+// ConvertExchange : 換算幣值
 func ConvertExchange(oldMoney []float64) (newMoney []float64, err error) {
 	// 先取匯率
 	res, err := http.Get("https://tw.rter.info/capi.php")

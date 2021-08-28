@@ -4,14 +4,21 @@ import (
 	"context"
 	"discordBot/model/dao/stock"
 	"discordBot/model/dto"
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
 )
 
+// SetStock : 將股票新增到 DB
 func SetStock(m *discordgo.MessageCreate) error {
+	// example : $set_stock TSLA units price
 	strSlice := strings.Split(m.Content, " ")
+
+	if len(strSlice) != 4 {
+		return fmt.Errorf("參數錯誤")
+	}
 
 	symbol := strSlice[1]
 	unitsStr := strSlice[2]
@@ -37,8 +44,14 @@ func SetStock(m *discordgo.MessageCreate) error {
 	return nil
 }
 
+// GetStock : DB 取得股票
 func GetStock(m *discordgo.MessageCreate) ([]*dto.Stock, error) {
+	// example : $get_stock TSLA
 	strSlice := strings.Split(m.Content, " ")
+
+	if len(strSlice) != 2 {
+		return nil, fmt.Errorf("參數錯誤")
+	}
 
 	userID := strSlice[1]
 
