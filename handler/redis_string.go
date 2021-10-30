@@ -19,6 +19,7 @@ func SetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		if len(strSlice) != 3 {
 			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+			return
 		}
 
 		key := strSlice[1]
@@ -32,6 +33,7 @@ func SetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 		)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			return
 		}
 
 		res := fmt.Sprintf("設定 key: %s, value: %s", key, value)
@@ -50,6 +52,7 @@ func GetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		if len(strSlice) != 2 {
 			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+			return
 		}
 
 		key := strSlice[1]
@@ -60,6 +63,7 @@ func GetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 		)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			return
 		}
 
 		res := fmt.Sprintf("取得 key: %s, value: %s", key, value)

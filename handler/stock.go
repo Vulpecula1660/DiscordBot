@@ -21,6 +21,7 @@ func Quote(s *discordgo.Session, m *discordgo.MessageCreate) {
 		res, err := stock.Quote(m.Content)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			return
 		}
 
 		s.ChannelMessageSend(m.ChannelID, res)

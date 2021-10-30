@@ -19,6 +19,7 @@ func SetList(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		if len(strSlice) != 3 {
 			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+			return
 		}
 
 		key := strSlice[1]
@@ -49,6 +50,7 @@ func GetList(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		if len(strSlice) != 2 {
 			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+			return
 		}
 
 		key := strSlice[1]
@@ -80,6 +82,7 @@ func DelListValue(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		if len(strSlice) != 3 {
 			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+			return
 		}
 
 		key := strSlice[1]
