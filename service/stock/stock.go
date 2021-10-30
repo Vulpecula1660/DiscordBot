@@ -9,7 +9,7 @@ import (
 // Quote : 查詢標的
 func Quote(message string) (string, error) {
 
-	// example : $+ TSLA
+	// example : $+TSLA
 	strSlice := strings.Split(message, "$+")
 
 	if len(strSlice) != 2 {

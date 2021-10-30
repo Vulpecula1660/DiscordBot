@@ -16,7 +16,7 @@ func Quote(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	// example : $+ TSLA
+	// example : $+TSLA
 	if strings.HasPrefix(m.Content, "$+") {
 		res, err := stock.Quote(m.Content)
 		if err != nil {
