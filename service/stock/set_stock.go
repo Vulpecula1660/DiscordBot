@@ -45,7 +45,7 @@ func SetStock(m *discordgo.MessageCreate) error {
 }
 
 // GetStock : DB 取得股票
-func GetStock(m *discordgo.MessageCreate) ([]*dto.Stock, error) {
+func GetStock(ctx context.Context, m *discordgo.MessageCreate) ([]*dto.Stock, error) {
 	// example : $get_stock TSLA
 	strSlice := strings.Split(m.Content, " ")
 
@@ -53,12 +53,12 @@ func GetStock(m *discordgo.MessageCreate) ([]*dto.Stock, error) {
 		return nil, fmt.Errorf("參數錯誤")
 	}
 
-	userID := strSlice[1]
+	symbol := strSlice[1]
 
 	res, err := stock.Get(
-		context.Background(),
+		ctx,
 		&stock.GetInput{
-			UserID: userID,
+			Symbol: symbol,
 		},
 	)
 	if err != nil {

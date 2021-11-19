@@ -7,7 +7,7 @@ import (
 )
 
 // Quote : 查詢標的
-func Quote(message string) (string, error) {
+func Quote(ctx context.Context, message string) (string, error) {
 
 	// example : $+TSLA
 	strSlice := strings.Split(message, "$+")
@@ -20,7 +20,7 @@ func Quote(message string) (string, error) {
 
 	finnhubClient := GetConn("finnhub")
 
-	res, _, err := finnhubClient.Quote(context.Background()).Symbol(symbol).Execute()
+	res, _, err := finnhubClient.Quote(ctx).Symbol(symbol).Execute()
 	if err != nil {
 		return "", err
 	}

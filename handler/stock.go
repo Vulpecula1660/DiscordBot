@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"discordBot/service/stock"
 	"encoding/json"
 	"fmt"
@@ -18,7 +19,7 @@ func Quote(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// example : $+TSLA
 	if strings.HasPrefix(m.Content, "$+") {
-		res, err := stock.Quote(m.Content)
+		res, err := stock.Quote(context.Background(), m.Content)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
 			return
@@ -57,7 +58,7 @@ func GetStock(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// example : $get_stock TSLA
 	if strings.HasPrefix(m.Content, "$get_stock") {
-		res, err := stock.GetStock(m)
+		res, err := stock.GetStock(context.Background(), m)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
 			return

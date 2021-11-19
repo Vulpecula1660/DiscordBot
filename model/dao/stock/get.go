@@ -12,6 +12,7 @@ import (
 // GetInput :
 type GetInput struct {
 	UserID string
+	Symbol string
 }
 
 // Get : 取得 d9fdq7n9q3delq.stock
@@ -35,6 +36,12 @@ func Get(ctx context.Context, input *GetInput) (ret []*dto.Stock, err error) {
 	if input.UserID != "" {
 		wheres = append(wheres, " user_id = $1 ")
 		params = append(params, input.UserID)
+	}
+
+	// Symbol
+	if input.Symbol != "" {
+		wheres = append(wheres, " symbol = $1 ")
+		params = append(params, input.Symbol)
 	}
 
 	// 沒有條件時回傳錯誤
