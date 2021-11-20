@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
+
 	"discordBot/model/redis"
 	"discordBot/service/discord"
-
-	"github.com/bwmarrin/discordgo"
 )
 
 // CheckChange : 檢查漲跌幅

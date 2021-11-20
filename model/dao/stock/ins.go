@@ -3,10 +3,11 @@ package stock
 import (
 	"context"
 	dbSQL "database/sql"
-	"discordBot/model/dto"
-	"discordBot/model/postgresql"
 	"fmt"
 	"os"
+
+	"discordBot/model/dto"
+	"discordBot/model/postgresql"
 )
 
 // Ins : 新增股票 ins d9fdq7n9q3delq.stock

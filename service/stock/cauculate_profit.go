@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
+
 	"discordBot/model/dao/stock"
 	"discordBot/model/redis"
 	"discordBot/service/discord"
 	"discordBot/service/exchange"
-
-	"github.com/bwmarrin/discordgo"
 )
 
 // CalculateProfit : 計算損益

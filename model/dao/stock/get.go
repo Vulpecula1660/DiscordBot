@@ -2,11 +2,12 @@ package stock
 
 import (
 	"context"
-	"discordBot/model/dto"
-	"discordBot/model/postgresql"
 	"fmt"
 	"os"
 	"strings"
+
+	"discordBot/model/dto"
+	"discordBot/model/postgresql"
 )
 
 // GetInput :

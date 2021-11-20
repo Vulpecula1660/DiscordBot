@@ -2,13 +2,14 @@ package handler
 
 import (
 	"context"
-	"discordBot/service/discord"
-	"discordBot/service/stock"
 	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+
+	"discordBot/service/discord"
+	"discordBot/service/stock"
 )
 
 // Quote : 取得股價

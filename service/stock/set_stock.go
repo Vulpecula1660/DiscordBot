@@ -2,13 +2,14 @@ package stock
 
 import (
 	"context"
-	"discordBot/model/dao/stock"
-	"discordBot/model/dto"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+
+	"discordBot/model/dao/stock"
+	"discordBot/model/dto"
 )
 
 // SetStock : 將股票新增到 DB

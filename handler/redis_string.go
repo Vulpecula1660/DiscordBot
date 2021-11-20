@@ -2,12 +2,13 @@ package handler
 
 import (
 	"context"
-	"discordBot/model/redis"
-	"discordBot/service/discord"
 	"fmt"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+
+	"discordBot/model/redis"
+	"discordBot/service/discord"
 )
 
 func SetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
