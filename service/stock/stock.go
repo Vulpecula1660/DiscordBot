@@ -32,14 +32,16 @@ func Quote(ctx context.Context, message string) (string, error) {
 
 	resStr1 := fmt.Sprintf("Finnhub 查詢標的為:%s 目前價格為:%v 今天漲跌幅:%v%s", symbol, *res.C, *res.Dp, "%")
 
-	return resStr1, err
+	return resStr1, nil
 }
 
 // GetChange : 取得漲跌幅
-func GetChange(stock string) (float32, error) {
+func GetChange(ctx context.Context, stock string) (float32, error) {
 	finnhubClient := GetConn("finnhub")
 
-	res, _, err := finnhubClient.Quote(context.Background()).Symbol(stock).Execute()
+	symbol := strings.ToUpper(stock)
+
+	res, _, err := finnhubClient.Quote(ctx).Symbol(symbol).Execute()
 
 	if err != nil {
 		return 0, err
@@ -51,7 +53,7 @@ func GetChange(stock string) (float32, error) {
 	}
 
 	// GetDp : Get Percent change
-	return res.GetDp(), err
+	return res.GetDp(), nil
 }
 
 type CalculateInput struct {

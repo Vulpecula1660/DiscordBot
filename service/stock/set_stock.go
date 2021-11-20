@@ -12,7 +12,7 @@ import (
 )
 
 // SetStock : 將股票新增到 DB
-func SetStock(m *discordgo.MessageCreate) error {
+func SetStock(ctx context.Context, m *discordgo.MessageCreate) error {
 	// example : $set_stock TSLA units price
 	strSlice := strings.Split(m.Content, " ")
 
@@ -28,7 +28,7 @@ func SetStock(m *discordgo.MessageCreate) error {
 	price, _ := strconv.ParseFloat(priceStr, 64)
 
 	err := stock.Ins(
-		context.Background(),
+		ctx,
 		nil,
 		&dto.Stock{
 			UserID: m.Author.ID,

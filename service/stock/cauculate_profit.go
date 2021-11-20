@@ -2,12 +2,14 @@ package stock
 
 import (
 	"context"
-	"discordBot/model/dao/stock"
-	"discordBot/model/redis"
-	"discordBot/service/exchange"
 	"fmt"
 	"strconv"
 	"time"
+
+	"discordBot/model/dao/stock"
+	"discordBot/model/redis"
+	"discordBot/service/discord"
+	"discordBot/service/exchange"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -24,7 +26,13 @@ func CalculateProfit(s *discordgo.Session) {
 		},
 	)
 	if err != nil {
-		s.ChannelMessageSend("872317320729616395", fmt.Sprintf("取資料時錯誤: %v", err))
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: "872317320729616395",
+				Content:   fmt.Sprintf("取資料時錯誤: %v", err),
+			},
+		)
 		return
 	}
 
@@ -39,7 +47,13 @@ func CalculateProfit(s *discordgo.Session) {
 				Price:  v.Price,
 			})
 		if err != nil {
-			s.ChannelMessageSend("872317320729616395", fmt.Sprintf("計算損益時錯誤: %v", err))
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: "872317320729616395",
+					Content:   fmt.Sprintf("計算損益時錯誤: %v", err),
+				},
+			)
 			return
 		}
 		cost := v.Units * v.Price
@@ -52,14 +66,26 @@ func CalculateProfit(s *discordgo.Session) {
 	// 取昨日市場總值
 	yesterdayTotalValue, err := redis.Get(ctx, "872317320729616395_"+"totalValue")
 	if err != nil {
-		s.ChannelMessageSend("872317320729616395", fmt.Sprintf("取昨日市場總值錯誤: %v", err))
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: "872317320729616395",
+				Content:   fmt.Sprintf("取昨日市場總值錯誤: %v", err),
+			},
+		)
 		return
 	}
 
 	// string to float64
 	yesterdayTotalValueFloat, err := strconv.ParseFloat(yesterdayTotalValue, 64)
 	if err != nil {
-		s.ChannelMessageSend("872317320729616395", fmt.Sprintf("string to float64 錯誤: %v", err))
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: "872317320729616395",
+				Content:   fmt.Sprintf("string to float64 錯誤: %v", err),
+			},
+		)
 		return
 	}
 
@@ -69,7 +95,13 @@ func CalculateProfit(s *discordgo.Session) {
 	// 換算幣值
 	newMoney, err := exchange.ConvertExchange(oldMoney)
 	if err != nil {
-		s.ChannelMessageSend("872317320729616395", fmt.Sprintf("換算匯率錯誤: %v", err))
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: "872317320729616395",
+				Content:   fmt.Sprintf("換算匯率錯誤: %v", err),
+			},
+		)
 		return
 	}
 
@@ -80,14 +112,26 @@ func CalculateProfit(s *discordgo.Session) {
 		},
 	})
 	if err != nil {
-		s.ChannelMessageSend("872317320729616395", fmt.Sprintf("發送訊息錯誤: %v", err))
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: "872317320729616395",
+				Content:   fmt.Sprintf("發送訊息錯誤: %v", err),
+			},
+		)
 		return
 	}
 
 	// 將今日市場總值存入 Redis
 	err = redis.Set(ctx, "872317320729616395_"+"totalValue", totalValue, time.Hour*0)
 	if err != nil {
-		s.ChannelMessageSend("872317320729616395", fmt.Sprintf("存今日總值錯誤: %v", err))
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: "872317320729616395",
+				Content:   fmt.Sprintf("存今日總值錯誤: %v", err),
+			},
+		)
 		return
 	}
 }

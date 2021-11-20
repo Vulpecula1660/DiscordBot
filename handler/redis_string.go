@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"discordBot/model/redis"
+	"discordBot/service/discord"
 	"fmt"
 	"strings"
 
@@ -18,7 +19,14 @@ func SetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 		strSlice := strings.Split(m.Content, " ")
 
 		if len(strSlice) != 3 {
-			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: m.ChannelID,
+					Content:   "參數錯誤",
+				},
+			)
+
 			return
 		}
 
@@ -32,13 +40,25 @@ func SetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 			0, // 無限時
 		)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: m.ChannelID,
+					Content:   fmt.Sprintf("錯誤: %v", err),
+				},
+			)
 			return
 		}
 
 		res := fmt.Sprintf("設定 key: %s, value: %s", key, value)
 
-		s.ChannelMessageSend(m.ChannelID, res)
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: m.ChannelID,
+				Content:   res,
+			},
+		)
 	}
 }
 
@@ -51,7 +71,13 @@ func GetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 		strSlice := strings.Split(m.Content, " ")
 
 		if len(strSlice) != 2 {
-			s.ChannelMessageSend(m.ChannelID, "參數錯誤")
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: m.ChannelID,
+					Content:   "參數錯誤",
+				},
+			)
 			return
 		}
 
@@ -62,12 +88,24 @@ func GetRedis(s *discordgo.Session, m *discordgo.MessageCreate) {
 			key,
 		)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: m.ChannelID,
+					Content:   fmt.Sprintf("錯誤: %v", err),
+				},
+			)
 			return
 		}
 
 		res := fmt.Sprintf("取得 key: %s, value: %s", key, value)
 
-		s.ChannelMessageSend(m.ChannelID, res)
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: m.ChannelID,
+				Content:   res,
+			},
+		)
 	}
 }

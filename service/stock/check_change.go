@@ -2,9 +2,11 @@ package stock
 
 import (
 	"context"
-	"discordBot/model/redis"
 	"fmt"
 	"time"
+
+	"discordBot/model/redis"
+	"discordBot/service/discord"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -21,7 +23,13 @@ func CheckChange(s *discordgo.Session) {
 		-1,
 	)
 	if err != nil {
-		s.ChannelMessageSend("872317320729616395", fmt.Sprintf("取得列表時錯誤: %v", err))
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: "872317320729616395",
+				Content:   fmt.Sprintf("取得列表時錯誤: %v", err),
+			},
+		)
 		return
 	}
 
@@ -29,7 +37,13 @@ func CheckChange(s *discordgo.Session) {
 		// 先看是否已通知過
 		redisRes, err := redis.Get(ctx, "watch_list:"+v)
 		if err != nil {
-			s.ChannelMessageSend("872317320729616395", fmt.Sprintf("取得紀錄時錯誤: %v", err))
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: "872317320729616395",
+					Content:   fmt.Sprintf("取得紀錄時錯誤: %v", err),
+				},
+			)
 			return
 		}
 
@@ -37,9 +51,15 @@ func CheckChange(s *discordgo.Session) {
 			continue
 		}
 
-		change, err := GetChange(v)
+		change, err := GetChange(ctx, v)
 		if err != nil {
-			s.ChannelMessageSend("872317320729616395", fmt.Sprintf("取得漲跌幅時錯誤: %v", err))
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: "872317320729616395",
+					Content:   fmt.Sprintf("取得漲跌幅時錯誤: %v", err),
+				},
+			)
 			continue
 		}
 
@@ -51,14 +71,26 @@ func CheckChange(s *discordgo.Session) {
 				},
 			})
 			if err != nil {
-				s.ChannelMessageSend("872317320729616395", fmt.Sprintf("發送訊息時錯誤: %v", err))
+				discord.SendMessage(
+					s,
+					&discord.SendMessageInput{
+						ChannelID: "872317320729616395",
+						Content:   fmt.Sprintf("發送訊息時錯誤: %v", err),
+					},
+				)
 				return
 			}
 
 			// 寫入紀錄已通知
 			err = redis.Set(ctx, "watch_list:"+v, "true", time.Hour*8)
 			if err != nil {
-				s.ChannelMessageSend("872317320729616395", fmt.Sprintf("寫入紀錄時錯誤: %v", err))
+				discord.SendMessage(
+					s,
+					&discord.SendMessageInput{
+						ChannelID: "872317320729616395",
+						Content:   fmt.Sprintf("寫入紀錄時錯誤: %v", err),
+					},
+				)
 				return
 			}
 		}

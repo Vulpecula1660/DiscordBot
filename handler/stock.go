@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"discordBot/service/discord"
 	"discordBot/service/stock"
 	"encoding/json"
 	"fmt"
@@ -21,11 +22,23 @@ func Quote(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.HasPrefix(m.Content, "$+") {
 		res, err := stock.Quote(context.Background(), m.Content)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: m.ChannelID,
+					Content:   fmt.Sprintf("錯誤: %v", err),
+				},
+			)
 			return
 		}
 
-		s.ChannelMessageSend(m.ChannelID, res)
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: m.ChannelID,
+				Content:   res,
+			},
+		)
 	}
 
 }
@@ -39,13 +52,25 @@ func SetStock(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// example : $set_stock TSLA units price
 	if strings.HasPrefix(m.Content, "$set_stock") {
-		err := stock.SetStock(m)
+		err := stock.SetStock(context.Background(), m)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: m.ChannelID,
+					Content:   fmt.Sprintf("錯誤: %v", err),
+				},
+			)
 			return
 		}
 
-		s.ChannelMessageSend(m.ChannelID, "新增成功")
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: m.ChannelID,
+				Content:   "新增成功",
+			},
+		)
 	}
 }
 
@@ -60,16 +85,34 @@ func GetStock(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if strings.HasPrefix(m.Content, "$get_stock") {
 		res, err := stock.GetStock(context.Background(), m)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: m.ChannelID,
+					Content:   fmt.Sprintf("錯誤: %v", err),
+				},
+			)
 			return
 		}
 
 		marshalRes, err := json.Marshal(res)
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("錯誤: %v", err))
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: m.ChannelID,
+					Content:   fmt.Sprintf("錯誤: %v", err),
+				},
+			)
 			return
 		}
 
-		s.ChannelMessageSend(m.ChannelID, string(marshalRes))
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: m.ChannelID,
+				Content:   string(marshalRes),
+			},
+		)
 	}
 }
