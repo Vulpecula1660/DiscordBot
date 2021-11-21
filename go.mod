@@ -4,6 +4,7 @@ module discordBot
 go 1.17
 
 require (
+	bou.ke/monkey v1.0.2
 	github.com/Finnhub-Stock-API/finnhub-go/v2 v2.0.6
 	github.com/bwmarrin/discordgo v0.23.2
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
