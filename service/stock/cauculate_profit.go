@@ -2,16 +2,17 @@ package stock
 
 import (
 	"context"
-	"fmt"
-	"strconv"
-	"time"
-
-	"github.com/bwmarrin/discordgo"
-
 	"discordBot/model/dao/stock"
+	"discordBot/model/dto"
 	"discordBot/model/redis"
 	"discordBot/service/discord"
 	"discordBot/service/exchange"
+	"fmt"
+	"strconv"
+	"sync"
+	"time"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 // CalculateProfit : 計算損益
@@ -38,30 +39,39 @@ func CalculateProfit(s *discordgo.Session) {
 
 	var totalProfit, totalCost, totalValue float64
 
-	for _, v := range dbRes {
-		value, profit, err := Calculate(
-			ctx,
-			&CalculateInput{
-				Symbol: v.Symbol,
-				Units:  v.Units,
-				Price:  v.Price,
-			})
-		if err != nil {
-			discord.SendMessage(
-				s,
-				&discord.SendMessageInput{
-					ChannelID: "872317320729616395",
-					Content:   fmt.Sprintf("計算損益時錯誤: %v", err),
-				},
-			)
-			return
-		}
-		cost := v.Units * v.Price
+	var wg sync.WaitGroup
+	wg.Add(len(dbRes))
 
-		totalProfit = totalProfit + profit
-		totalCost = totalCost + cost
-		totalValue = totalValue + value
+	for _, v := range dbRes {
+		go func(stock *dto.Stock) {
+			defer wg.Done()
+
+			value, profit, err := Calculate(
+				ctx,
+				&CalculateInput{
+					Symbol: stock.Symbol,
+					Units:  stock.Units,
+					Price:  stock.Price,
+				})
+			if err != nil {
+				discord.SendMessage(
+					s,
+					&discord.SendMessageInput{
+						ChannelID: "872317320729616395",
+						Content:   fmt.Sprintf("計算損益時錯誤: %v", err),
+					},
+				)
+				return
+			}
+			cost := stock.Units * stock.Price
+
+			totalProfit = totalProfit + profit
+			totalCost = totalCost + cost
+			totalValue = totalValue + value
+		}(v)
 	}
+
+	wg.Wait()
 
 	// 取昨日市場總值
 	yesterdayTotalValue, err := redis.Get(ctx, "872317320729616395_"+"totalValue")
