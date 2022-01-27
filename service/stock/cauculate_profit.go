@@ -42,6 +42,8 @@ func CalculateProfit(s *discordgo.Session) {
 	var wg sync.WaitGroup
 	wg.Add(len(dbRes))
 
+	var mu sync.Mutex
+
 	for _, v := range dbRes {
 		go func(stock *dto.Stock) {
 			defer wg.Done()
@@ -63,6 +65,10 @@ func CalculateProfit(s *discordgo.Session) {
 				)
 				return
 			}
+
+			mu.Lock()
+			defer mu.Unlock()
+
 			cost := stock.Units * stock.Price
 
 			totalProfit = totalProfit + profit
