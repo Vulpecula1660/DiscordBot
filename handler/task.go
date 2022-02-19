@@ -1,12 +1,13 @@
 package handler
 
 import (
+	"discordBot/service/crypto"
+	"discordBot/service/stock"
+	"fmt"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/robfig/cron/v3"
-
-	"discordBot/service/stock"
 )
 
 // Task : 定時任務
@@ -33,6 +34,11 @@ func Task(s *discordgo.Session) {
 	c.AddFunc("0 6 * * 2-6", func() {
 		// 計算收益
 		stock.CalculateProfit(s)
+	})
+
+	c.AddFunc("@every 30s", func() {
+		price, _ := crypto.GetPrice()
+		s.UpdateListeningStatus(fmt.Sprintf("ETH價格 %.2F", price))
 	})
 
 	c.Start()
