@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"discordBot/service/crypto"
+	"discordBot/service/discord"
 	"discordBot/service/stock"
 
 	"github.com/bwmarrin/discordgo"
@@ -38,7 +39,16 @@ func Task(s *discordgo.Session) {
 	})
 
 	c.AddFunc("@every 30s", func() {
-		price, _ := crypto.GetPrice()
+		price, err := crypto.GetPrice()
+		if err != nil {
+			discord.SendMessage(
+				s,
+				&discord.SendMessageInput{
+					ChannelID: "1032641300077490266",
+					Content:   fmt.Sprintf("ETH 取得價格錯誤: %v", err),
+				},
+			)
+		}
 		s.UpdateListeningStatus(fmt.Sprintf("ETH價格 %.2F", price))
 	})
 
