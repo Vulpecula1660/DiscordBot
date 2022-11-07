@@ -20,8 +20,8 @@ func Task(s *discordgo.Session) {
 	// 新建一個定時任務物件
 	c := cron.New(cron.WithLocation(taipeiLoc))
 
-	// 週一到週五 22:00 - 23:59 每 10 分鐘啟動
-	c.AddFunc("*/10 22-23 * * 1-5", func() {
+	// 週一到週五 23:00 - 23:59 每 10 分鐘啟動
+	c.AddFunc("*/10 23 * * 1-5", func() {
 		// 取得漲跌幅
 		stock.CheckChange(s)
 	})
