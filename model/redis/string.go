@@ -4,32 +4,27 @@ import (
 	"context"
 	"time"
 
-	redis "github.com/go-redis/redis/v8"
-)
-
-const (
-	// redisDB : 放在 redis db0
-	redisDB int = 0
+	"github.com/redis/go-redis/v9"
 )
 
 // Set : 資料寫入Redis中
 func Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+	conn, err := GetConn("Redis")
+	if err != nil {
+		return err
+	}
 
-	return GetConn("Redis").Set(
-		ctx,
-		key,
-		value,
-		expiration,
-	).Err()
+	return conn.Set(ctx, key, value, expiration).Err()
 }
 
 // Get : 從 Redis 取得資料
 func Get(ctx context.Context, key string) (string, error) {
+	conn, err := GetConn("Redis")
+	if err != nil {
+		return "", err
+	}
 
-	data, err := GetConn("Redis").Get(
-		ctx,
-		key,
-	).Result()
+	data, err := conn.Get(ctx, key).Result()
 
 	// 找不到Key
 	if err == redis.Nil || data == "" {
@@ -43,12 +38,12 @@ func Get(ctx context.Context, key string) (string, error) {
 	return data, nil
 }
 
-// Del :
+// Del : 從 Redis 刪除資料
 func Del(ctx context.Context, key string) error {
+	conn, err := GetConn("Redis")
+	if err != nil {
+		return err
+	}
 
-	return GetConn("Redis").
-		Del(
-			ctx,
-			key,
-		).Err()
+	return conn.Del(ctx, key).Err()
 }

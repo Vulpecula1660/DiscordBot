@@ -1,9 +1,11 @@
 package crypto
 
 import (
+	"context"
 	"encoding/json"
-	"io/ioutil"
-	"net/http"
+	"fmt"
+
+	"discordBot/service/client"
 )
 
 type (
@@ -16,27 +18,29 @@ type (
 	}
 )
 
+const (
+	coingeckoAPIURL = "https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd"
+	maxRetries      = 3
+)
+
+var httpClient = client.NewHTTPClientWithEnv("CRYPTO")
+
+// GetPrice 獲取ETH當前價格
 func GetPrice() (float64, error) {
-	res, err := http.Get("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
+	ctx := context.Background()
+
+	body, err := httpClient.GetWithRetry(ctx, coingeckoAPIURL, maxRetries)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to fetch crypto price: %w", err)
 	}
 
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return 0, err
-	}
-
-	apiInfo := &apiInfo{
+	info := &apiInfo{
 		Ethereum: usd{},
 	}
 
-	err = json.Unmarshal(body, apiInfo)
-	if err != nil {
-		return 0, err
+	if err := json.Unmarshal(body, info); err != nil {
+		return 0, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	return apiInfo.Ethereum.Price, nil
+	return info.Ethereum.Price, nil
 }

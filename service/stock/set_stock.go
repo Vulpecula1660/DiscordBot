@@ -25,10 +25,17 @@ func SetStock(ctx context.Context, m *discordgo.MessageCreate) error {
 	unitsStr := strSlice[2]
 	priceStr := strSlice[3]
 
-	units, _ := strconv.ParseFloat(unitsStr, 64)
-	price, _ := strconv.ParseFloat(priceStr, 64)
+	units, err := strconv.ParseFloat(unitsStr, 64)
+	if err != nil {
+		return fmt.Errorf("無效的數量: %w", err)
+	}
 
-	err := stock.Ins(
+	price, err := strconv.ParseFloat(priceStr, 64)
+	if err != nil {
+		return fmt.Errorf("無效的價格: %w", err)
+	}
+
+	if err := stock.Ins(
 		ctx,
 		nil,
 		&dto.Stock{
@@ -37,8 +44,7 @@ func SetStock(ctx context.Context, m *discordgo.MessageCreate) error {
 			Units:  units,
 			Price:  price,
 		},
-	)
-	if err != nil {
+	); err != nil {
 		return err
 	}
 

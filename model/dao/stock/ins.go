@@ -20,17 +20,18 @@ func Ins(ctx context.Context, tx *dbSQL.Tx, input *dto.Stock) (err error) {
 	var dbM *dbSQL.DB
 
 	if tx == nil {
-		dbM = postgresql.GetConn(os.Getenv("DATABASE_Name"))
+		dbM, err = postgresql.GetConn(os.Getenv("DATABASE_Name"))
+		if err != nil {
+			return fmt.Errorf("failed to get database connection: %w", err)
+		}
 	}
 
-	sql := " INSERT INTO stock ("
-	sql += "    user_id,"
-	sql += "    symbol,"
-	sql += "    units,"
-	sql += "    price "
-	sql += " )"
-	sql += " VALUES "
-	sql += " ( $1, $2, $3, $4)"
+	sql := `INSERT INTO stock (
+		user_id,
+		symbol,
+		units,
+		price
+	) VALUES ($1, $2, $3, $4)`
 
 	var params []interface{}
 

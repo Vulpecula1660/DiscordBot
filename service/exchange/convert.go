@@ -1,9 +1,11 @@
 package exchange
 
 import (
+	"context"
 	"encoding/json"
-	"io/ioutil"
-	"net/http"
+	"fmt"
+
+	"discordBot/service/client"
 )
 
 type (
@@ -16,32 +18,36 @@ type (
 	}
 )
 
+const (
+	exchangeAPIURL = "https://tw.rter.info/capi.php"
+	maxRetries     = 3
+)
+
+var httpClient = client.NewHTTPClientWithEnv("EXCHANGE")
+
 // ConvertExchange : 換算幣值
-func ConvertExchange(oldMoney []float64) (newMoney []float64, err error) {
+func ConvertExchange(oldMoney []float64) ([]float64, error) {
+	ctx := context.Background()
+
 	// 先取匯率
-	res, err := http.Get("https://tw.rter.info/capi.php")
+	body, err := httpClient.GetWithRetry(ctx, exchangeAPIURL, maxRetries)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch exchange rate: %w", err)
 	}
 
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
+	info := &apiInfo{}
+	if err := json.Unmarshal(body, info); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal exchange rate: %w", err)
 	}
 
-	apiInfo := &apiInfo{}
-
-	err = json.Unmarshal(body, apiInfo)
-	if err != nil {
-		return nil, err
+	exrate := info.USDTWD.Exrate
+	if exrate == 0 {
+		return nil, fmt.Errorf("invalid exchange rate: %f", exrate)
 	}
 
-	exrateStr := apiInfo.USDTWD.Exrate
-
-	for _, v := range oldMoney {
-		newMoney = append(newMoney, v*exrateStr)
+	newMoney := make([]float64, len(oldMoney))
+	for i, v := range oldMoney {
+		newMoney[i] = v * exrate
 	}
 
 	return newMoney, nil

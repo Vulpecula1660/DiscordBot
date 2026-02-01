@@ -18,17 +18,12 @@ type GetInput struct {
 
 // Get : 取得 d9fdq7n9q3delq.stock
 func Get(ctx context.Context, input *GetInput) (ret []*dto.Stock, err error) {
-	dbS := postgresql.GetConn(os.Getenv("DATABASE_Name"))
+	dbS, err := postgresql.GetConn(os.Getenv("DATABASE_Name"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
 
-	sql := " SELECT "
-	sql += "    id, "
-	sql += "    user_id, "
-	sql += "    symbol, "
-	sql += "    units, "
-	sql += "    price "
-
-	sql += " FROM stock "
-	sql += " WHERE "
+	sql := `SELECT id, user_id, symbol, units, price FROM stock WHERE`
 
 	var params []interface{}
 	var wheres []string
