@@ -6,7 +6,10 @@
 3. 使用 Heroku 提供的免費 PostgreSQL 與 Redis
 4. 支援連接池配置，提升效能和穩定性
 5. 統一的 HTTP 客戶端，支援超時和重試機制
-6. 結構化日誌系統
+6. 結構化日誌系統 (log/slog)
+7. **依賴注入與接口抽象** - 便於測試和維護
+8. **統一命令路由** - 集中管理所有 Discord 命令
+9. **優雅關閉機制** - 確保資源正確釋放
 
 ## 功能
 1. 查詢指定標的目前股價
@@ -58,19 +61,39 @@ cp .env.example .env
 | `DATABASE_Name` | PostgreSQL 資料庫名稱 | 是 |
 | `DATABASE_User` | PostgreSQL 用戶 | 是 |
 | `DATABASE_Password` | PostgreSQL 密碼 | 是 |
-| `CHANNEL_PROFIT_REPORT` | 損益報告頻道 ID | 建議 |
-| `CHANNEL_WATCH_LIST` | 觀察清單頻道 ID | 建議 |
-| `CHANNEL_CRYPTO_UPDATE` | 加密貨幣更新頻道 ID | 建議 |
-| `DEFAULT_USER_ID` | 預設用戶 ID | 建議 |
 
-### 選填環境變數（連接池配置）
+### 建議配置環境變數
 
-- `REDIS_POOL_SIZE` - Redis 連接池大小 (預設: 10)
-- `REDIS_MIN_IDLE_CONNS` - Redis 最小空閒連接數 (預設: 5)
-- `REDIS_MAX_RETRIES` - Redis 最大重試次數 (預設: 3)
-- `DB_MAX_OPEN_CONNS` - 資料庫最大開啟連接數 (預設: 25)
-- `DB_MAX_IDLE_CONNS` - 資料庫最大空閒連接數 (預設: 10)
-- `LOG_LEVEL` - 日誌級別: DEBUG, INFO, WARN, ERROR (預設: INFO)
+| 變數 | 說明 | 預設值 |
+|------|------|--------|
+| `CRYPTO_PRICE_CHANNEL_ID` | 加密貨幣價格更新頻道 ID | 1032641300077490266 |
+| `WATCH_LIST_CHANNEL_ID` | 股票觀察清單頻道 ID | 960897897166176266 |
+| `PROFIT_REPORT_CHANNEL_ID` | 損益報告頻道 ID | 872317320729616395 |
+| `DEFAULT_USER_ID` | 預設用戶 ID（用於提及） | 512265930735222795 |
+| `CHANNEL_PROFIT_REPORT` | 損益報告頻道 ID（舊版） | - |
+| `CHANNEL_WATCH_LIST` | 觀察清單頻道 ID（舊版） | - |
+| `CHANNEL_CRYPTO_UPDATE` | 加密貨幣更新頻道 ID（舊版） | - |
+
+### 可選環境變數
+
+| 變數 | 說明 | 預設值 |
+|------|------|--------|
+| `ENV` | 執行環境 (development/production) | development |
+| `LOG_LEVEL` | 日誌級別 (DEBUG/INFO/WARN/ERROR) | INFO |
+
+### 連接池配置環境變數
+
+| 變數 | 說明 | 預設值 |
+|------|------|--------|
+| `REDIS_POOL_SIZE` | Redis 連接池大小 | 10 |
+| `REDIS_MIN_IDLE_CONNS` | Redis 最小空閒連接數 | 5 |
+| `REDIS_MAX_RETRIES` | Redis 最大重試次數 | 3 |
+| `REDIS_READ_TIMEOUT` | Redis 讀取超時 | 10s |
+| `REDIS_WRITE_TIMEOUT` | Redis 寫入超時 | 10s |
+| `DB_MAX_OPEN_CONNS` | 資料庫最大開啟連接數 | 25 |
+| `DB_MAX_IDLE_CONNS` | 資料庫最大空閒連接數 | 10 |
+| `DB_CONN_MAX_LIFETIME` | 資料庫連接最大生命週期 | 5m |
+| `DB_CONN_MAX_IDLE_TIME` | 資料庫連接最大空閒時間 | 10m |
 
 ## 運行
 
@@ -109,6 +132,29 @@ go test ./service/stock
 
 ## 升級記錄
 
+### 2026-02 架構優化
+
+- **Bug 修復**:
+  - 修復 SQL 參數索引錯誤（`model/dao/stock/get.go` 中兩個條件都使用 `$1` 的問題）
+
+- **架構改進**:
+  - **依賴注入**: 新增股票服務和 Discord 服務的接口抽象（`service/stock/interface.go`, `service/discord/interface.go`）
+  - **命令路由**: 重構命令處理為統一路由器模式（`handler/router.go`）
+  - **優雅關閉**: 實現 graceful shutdown，確保資源正確釋放
+  - **配置管理**: 新增 `TaskConfig` 統一管理頻道 ID 和用戶 ID
+  - **日誌整合**: 全項目統一使用 `pkg/logger`，替代 `fmt.Println`
+
+- **新增文件**:
+  - `service/stock/interface.go` - 股票服務接口
+  - `service/discord/interface.go` - Discord 消息接口
+  - `handler/router.go` - 命令路由器
+  - `OPTIMIZATION_SUMMARY.md` - 優化詳細報告
+
+- **環境變數更新**:
+  - 新增 `CRYPTO_PRICE_CHANNEL_ID`, `WATCH_LIST_CHANNEL_ID`, `PROFIT_REPORT_CHANNEL_ID`
+  - 新增 `ENV` 和 `LOG_LEVEL`
+  - 新增多個 Redis 和 PostgreSQL 連接池配置選項
+
 ### 2025-02 重大重構
 
 - **Go 版本**: 從 1.19 升級到 1.25
@@ -126,3 +172,52 @@ go test ./service/stock
   - 改進錯誤處理，使用錯誤包裝
   - 消除硬編碼的 Channel ID 和 User ID
   - 修復過時的 API 使用 (ioutil.ReadAll → io.ReadAll)
+
+## 架構說明
+
+### 依賴注入與接口
+
+專案使用接口來抽象外部依賴，便於單元測試和維護：
+
+```go
+// 股票服務接口
+service/stock/interface.go
+- Quoter: 股票報價和漲跌幅查詢
+- Calculator: 損益計算
+- Repository: 數據存取抽象
+
+// Discord 服務接口
+service/discord/interface.go
+- Messenger: 消息發送抽象
+```
+
+### 命令路由
+
+使用統一的命令路由器集中管理所有 Discord 命令：
+
+```go
+router := handler.NewCommandRouter()
+router.Register("$+", handler.Quote)
+router.Register("$set_stock", handler.SetStock)
+// ... 其他命令
+dg.AddHandler(router.Handle)
+```
+
+### 優雅關閉
+
+實現 graceful shutdown 機制，確保資源正確釋放：
+
+1. 停止定時任務
+2. 關閉數據庫連線
+3. 關閉 Redis 連線
+4. 關閉 Discord Session
+
+### 配置管理
+
+統一配置管理，支援環境變量和預設值：
+
+```go
+// 獲取配置
+taskConfig := config.GetTaskConfig()
+logger.Init()  // 根據環境初始化日誌
+```

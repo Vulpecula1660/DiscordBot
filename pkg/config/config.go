@@ -114,6 +114,28 @@ func GetAPIConfig() *APIConfig {
 	}
 }
 
+// TaskConfig 定時任務相關配置
+type TaskConfig struct {
+	// 加密貨幣價格更新頻道
+	CryptoPriceChannelID string
+	// 股票觀察清單頻道
+	WatchListChannelID string
+	// 收益報告頻道
+	ProfitReportChannelID string
+	// 默認用戶ID（用於收益報告）
+	DefaultUserID string
+}
+
+// GetTaskConfig 獲取定時任務配置
+func GetTaskConfig() *TaskConfig {
+	return &TaskConfig{
+		CryptoPriceChannelID:  getEnv("CRYPTO_PRICE_CHANNEL_ID", "1032641300077490266"),
+		WatchListChannelID:    getEnv("WATCH_LIST_CHANNEL_ID", "960897897166176266"),
+		ProfitReportChannelID: getEnv("PROFIT_REPORT_CHANNEL_ID", "872317320729616395"),
+		DefaultUserID:         getEnv("DEFAULT_USER_ID", "512265930735222795"),
+	}
+}
+
 // Helper functions
 func getEnv(key, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {

@@ -23,21 +23,22 @@ func Get(ctx context.Context, input *GetInput) (ret []*dto.Stock, err error) {
 		return nil, fmt.Errorf("failed to get database connection: %w", err)
 	}
 
-	sql := `SELECT id, user_id, symbol, units, price FROM stock WHERE`
-
 	var params []interface{}
 	var wheres []string
+	paramIndex := 1
 
 	// UserID
 	if input.UserID != "" {
-		wheres = append(wheres, " user_id = $1 ")
+		wheres = append(wheres, fmt.Sprintf(" user_id = $%d ", paramIndex))
 		params = append(params, input.UserID)
+		paramIndex++
 	}
 
 	// Symbol
 	if input.Symbol != "" {
-		wheres = append(wheres, " symbol = $1 ")
+		wheres = append(wheres, fmt.Sprintf(" symbol = $%d ", paramIndex))
 		params = append(params, input.Symbol)
+		paramIndex++
 	}
 
 	// 沒有條件時回傳錯誤
@@ -45,7 +46,7 @@ func Get(ctx context.Context, input *GetInput) (ret []*dto.Stock, err error) {
 		return nil, fmt.Errorf("sql 語法錯誤")
 	}
 
-	sql += strings.Join(wheres, " AND ")
+	sql := `SELECT id, user_id, symbol, units, price FROM stock WHERE` + strings.Join(wheres, " AND ")
 
 	rows, err := dbS.QueryContext(ctx, sql, params...)
 	if err != nil {

@@ -2,15 +2,18 @@ package stock
 
 import (
 	"context"
-	"discordBot/model/dao/stock"
-	"discordBot/model/dto"
-	"discordBot/model/redis"
-	"discordBot/service/discord"
-	"discordBot/service/exchange"
 	"fmt"
 	"strconv"
 	"sync"
 	"time"
+
+	"discordBot/model/dao/stock"
+	"discordBot/model/dto"
+	"discordBot/model/redis"
+	"discordBot/pkg/config"
+	"discordBot/pkg/logger"
+	"discordBot/service/discord"
+	"discordBot/service/exchange"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -18,24 +21,30 @@ import (
 // CalculateProfit : 計算損益
 func CalculateProfit(s *discordgo.Session) {
 	ctx := context.Background()
+	taskConfig := config.GetTaskConfig()
+
+	logger.Info("開始計算收益")
 
 	// 先取資料
 	dbRes, err := stock.Get(
 		ctx,
 		&stock.GetInput{
-			UserID: "512265930735222795",
+			UserID: taskConfig.DefaultUserID,
 		},
 	)
 	if err != nil {
+		logger.Error("取得股票資料失敗", "error", err)
 		discord.SendMessage(
 			s,
 			&discord.SendMessageInput{
-				ChannelID: "872317320729616395",
+				ChannelID: taskConfig.ProfitReportChannelID,
 				Content:   fmt.Sprintf("取資料時錯誤: %v", err),
 			},
 		)
 		return
 	}
+
+	logger.Info("取得股票資料", "count", len(dbRes))
 
 	var totalProfit, totalCost, totalValue float64
 
@@ -56,10 +65,11 @@ func CalculateProfit(s *discordgo.Session) {
 					Price:  stock.Price,
 				})
 			if err != nil {
+				logger.Error("計算損益失敗", "symbol", stock.Symbol, "error", err)
 				discord.SendMessage(
 					s,
 					&discord.SendMessageInput{
-						ChannelID: "872317320729616395",
+						ChannelID: taskConfig.ProfitReportChannelID,
 						Content:   fmt.Sprintf("計算損益時錯誤: %v", err),
 					},
 				)
@@ -80,12 +90,14 @@ func CalculateProfit(s *discordgo.Session) {
 	wg.Wait()
 
 	// 取昨日市場總值
-	yesterdayTotalValue, err := redis.Get(ctx, "872317320729616395_"+"totalValue")
+	redisKey := taskConfig.ProfitReportChannelID + "_" + "totalValue"
+	yesterdayTotalValue, err := redis.Get(ctx, redisKey)
 	if err != nil {
+		logger.Error("取得昨日市場總值失敗", "error", err)
 		discord.SendMessage(
 			s,
 			&discord.SendMessageInput{
-				ChannelID: "872317320729616395",
+				ChannelID: taskConfig.ProfitReportChannelID,
 				Content:   fmt.Sprintf("取昨日市場總值錯誤: %v", err),
 			},
 		)
@@ -95,10 +107,11 @@ func CalculateProfit(s *discordgo.Session) {
 	// string to float64
 	yesterdayTotalValueFloat, err := strconv.ParseFloat(yesterdayTotalValue, 64)
 	if err != nil {
+		logger.Error("轉換昨日市場總值失敗", "value", yesterdayTotalValue, "error", err)
 		discord.SendMessage(
 			s,
 			&discord.SendMessageInput{
-				ChannelID: "872317320729616395",
+				ChannelID: taskConfig.ProfitReportChannelID,
 				Content:   fmt.Sprintf("string to float64 錯誤: %v", err),
 			},
 		)
@@ -111,43 +124,51 @@ func CalculateProfit(s *discordgo.Session) {
 	// 換算幣值
 	newMoney, err := exchange.ConvertExchange(oldMoney)
 	if err != nil {
+		logger.Error("換算匯率失敗", "error", err)
 		discord.SendMessage(
 			s,
 			&discord.SendMessageInput{
-				ChannelID: "872317320729616395",
+				ChannelID: taskConfig.ProfitReportChannelID,
 				Content:   fmt.Sprintf("換算匯率錯誤: %v", err),
 			},
 		)
 		return
 	}
 
-	_, err = s.ChannelMessageSendComplex("872317320729616395", &discordgo.MessageSend{
-		Content: fmt.Sprintf("<@512265930735222795> 總成本: %.2f, 目前市場總值: %.2f, 目前損益: %.2f, 今日損益: %.2f  \n 換算台幣總成本: %.2f, 換算台幣目前市場總值: %.2f, 換算台幣目前損益: %.2f, 換算台幣今日損益: %.2f", totalCost, totalValue, totalProfit, todayProfit, newMoney[0], newMoney[1], newMoney[2], newMoney[3]),
+	_, err = s.ChannelMessageSendComplex(taskConfig.ProfitReportChannelID, &discordgo.MessageSend{
+		Content: fmt.Sprintf("<@%s> 總成本: %.2f, 目前市場總值: %.2f, 目前損益: %.2f, 今日損益: %.2f  \n 換算台幣總成本: %.2f, 換算台幣目前市場總值: %.2f, 換算台幣目前損益: %.2f, 換算台幣今日損益: %.2f",
+			taskConfig.DefaultUserID, totalCost, totalValue, totalProfit, todayProfit, newMoney[0], newMoney[1], newMoney[2], newMoney[3]),
 		AllowedMentions: &discordgo.MessageAllowedMentions{
 			Parse: []discordgo.AllowedMentionType{discordgo.AllowedMentionTypeUsers},
 		},
 	})
 	if err != nil {
+		logger.Error("發送收益報告失敗", "error", err)
 		discord.SendMessage(
 			s,
 			&discord.SendMessageInput{
-				ChannelID: "872317320729616395",
+				ChannelID: taskConfig.ProfitReportChannelID,
 				Content:   fmt.Sprintf("發送訊息錯誤: %v", err),
 			},
 		)
 		return
 	}
 
+	logger.Info("收益報告發送成功", "totalCost", totalCost, "totalValue", totalValue, "totalProfit", totalProfit, "todayProfit", todayProfit)
+
 	// 將今日市場總值存入 Redis
-	err = redis.Set(ctx, "872317320729616395_"+"totalValue", totalValue, time.Hour*0)
+	err = redis.Set(ctx, redisKey, totalValue, time.Hour*0)
 	if err != nil {
+		logger.Error("儲存今日市場總值失敗", "error", err)
 		discord.SendMessage(
 			s,
 			&discord.SendMessageInput{
-				ChannelID: "872317320729616395",
+				ChannelID: taskConfig.ProfitReportChannelID,
 				Content:   fmt.Sprintf("存今日總值錯誤: %v", err),
 			},
 		)
 		return
 	}
+
+	logger.Info("完成收益計算")
 }
