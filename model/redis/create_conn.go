@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"discordBot/pkg/config"
 )
 
 var (
@@ -65,12 +66,12 @@ func createConn(name string) (*redis.Client, error) {
 	}
 
 	// 配置連接池
-	opt.PoolSize = getEnvInt("REDIS_POOL_SIZE", 10)
-	opt.MinIdleConns = getEnvInt("REDIS_MIN_IDLE_CONNS", 5)
-	opt.MaxRetries = getEnvInt("REDIS_MAX_RETRIES", 3)
-	opt.ReadTimeout = getEnvDuration("REDIS_READ_TIMEOUT", 10*time.Second)
-	opt.WriteTimeout = getEnvDuration("REDIS_WRITE_TIMEOUT", 10*time.Second)
-	opt.PoolTimeout = getEnvDuration("REDIS_POOL_TIMEOUT", 30*time.Second)
+	opt.PoolSize = config.GetEnvInt("REDIS_POOL_SIZE", 10)
+	opt.MinIdleConns = config.GetEnvInt("REDIS_MIN_IDLE_CONNS", 5)
+	opt.MaxRetries = config.GetEnvInt("REDIS_MAX_RETRIES", 3)
+	opt.ReadTimeout = config.GetEnvDuration("REDIS_READ_TIMEOUT", 10*time.Second)
+	opt.WriteTimeout = config.GetEnvDuration("REDIS_WRITE_TIMEOUT", 10*time.Second)
+	opt.PoolTimeout = config.GetEnvDuration("REDIS_POOL_TIMEOUT", 30*time.Second)
 
 	client := redis.NewClient(opt)
 
@@ -102,24 +103,4 @@ func CloseAll() error {
 		return fmt.Errorf("errors closing redis connections: %v", errs)
 	}
 	return nil
-}
-
-// getEnvInt : 從環境變量獲取整數值，帶有默認值
-func getEnvInt(key string, defaultVal int) int {
-	if val := os.Getenv(key); val != "" {
-		if intVal, err := strconv.Atoi(val); err == nil {
-			return intVal
-		}
-	}
-	return defaultVal
-}
-
-// getEnvDuration : 從環境變量獲取時間值，帶有默認值
-func getEnvDuration(key string, defaultVal time.Duration) time.Duration {
-	if val := os.Getenv(key); val != "" {
-		if duration, err := time.ParseDuration(val); err == nil {
-			return duration
-		}
-	}
-	return defaultVal
 }

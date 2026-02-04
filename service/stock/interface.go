@@ -2,9 +2,17 @@ package stock
 
 import (
 	"context"
+	"net/http"
+
+	finnhub "github.com/Finnhub-Stock-API/finnhub-go/v2"
 
 	"discordBot/model/dto"
 )
+
+// FinnhubClient 定義 Finnhub API 的介面，用於依賴注入和測試
+type FinnhubClient interface {
+	Quote(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error)
+}
 
 // Quoter 股票報價接口
 type Quoter interface {

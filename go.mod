@@ -4,7 +4,6 @@ module discordBot
 go 1.25
 
 require (
-	bou.ke/monkey v1.0.2
 	github.com/Finnhub-Stock-API/finnhub-go/v2 v2.0.22
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/joho/godotenv v1.5.1

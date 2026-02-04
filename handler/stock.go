@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -13,107 +12,85 @@ import (
 )
 
 // Quote : 取得股價
+// example : $+TSLA
 func Quote(s *discordgo.Session, m *discordgo.MessageCreate) {
-
-	if m.Author.ID == s.State.User.ID {
-		return
-	}
-
-	// example : $+TSLA
-	if strings.HasPrefix(m.Content, "$+") {
-		res, err := stock.Quote(context.Background(), m.Content)
-		if err != nil {
-			discord.SendMessage(
-				s,
-				&discord.SendMessageInput{
-					ChannelID: m.ChannelID,
-					Content:   fmt.Sprintf("錯誤: %v", err),
-				},
-			)
-			return
-		}
-
+	res, err := stock.Quote(context.Background(), m.Content)
+	if err != nil {
 		discord.SendMessage(
 			s,
 			&discord.SendMessageInput{
 				ChannelID: m.ChannelID,
-				Content:   res,
+				Content:   fmt.Sprintf("錯誤: %v", err),
 			},
 		)
+		return
 	}
 
+	discord.SendMessage(
+		s,
+		&discord.SendMessageInput{
+			ChannelID: m.ChannelID,
+			Content:   res,
+		},
+	)
 }
 
 // SetStock : 新增股票到 DB
+// example : $set_stock TSLA units price
 func SetStock(s *discordgo.Session, m *discordgo.MessageCreate) {
-
-	if m.Author.ID == s.State.User.ID {
-		return
-	}
-
-	// example : $set_stock TSLA units price
-	if strings.HasPrefix(m.Content, "$set_stock") {
-		err := stock.SetStock(context.Background(), m)
-		if err != nil {
-			discord.SendMessage(
-				s,
-				&discord.SendMessageInput{
-					ChannelID: m.ChannelID,
-					Content:   fmt.Sprintf("錯誤: %v", err),
-				},
-			)
-			return
-		}
-
+	err := stock.SetStock(context.Background(), m)
+	if err != nil {
 		discord.SendMessage(
 			s,
 			&discord.SendMessageInput{
 				ChannelID: m.ChannelID,
-				Content:   "新增成功",
+				Content:   fmt.Sprintf("錯誤: %v", err),
 			},
 		)
+		return
 	}
+
+	discord.SendMessage(
+		s,
+		&discord.SendMessageInput{
+			ChannelID: m.ChannelID,
+			Content:   "新增成功",
+		},
+	)
 }
 
-// 取得 DB 中股票
+// GetStock : 取得 DB 中股票
+// example : $get_stock TSLA
 func GetStock(s *discordgo.Session, m *discordgo.MessageCreate) {
-
-	if m.Author.ID == s.State.User.ID {
-		return
-	}
-
-	// example : $get_stock TSLA
-	if strings.HasPrefix(m.Content, "$get_stock") {
-		res, err := stock.GetStock(context.Background(), m)
-		if err != nil {
-			discord.SendMessage(
-				s,
-				&discord.SendMessageInput{
-					ChannelID: m.ChannelID,
-					Content:   fmt.Sprintf("錯誤: %v", err),
-				},
-			)
-			return
-		}
-
-		marshalRes, err := json.Marshal(res)
-		if err != nil {
-			discord.SendMessage(
-				s,
-				&discord.SendMessageInput{
-					ChannelID: m.ChannelID,
-					Content:   fmt.Sprintf("錯誤: %v", err),
-				},
-			)
-			return
-		}
-
+	res, err := stock.GetStock(context.Background(), m)
+	if err != nil {
 		discord.SendMessage(
 			s,
 			&discord.SendMessageInput{
 				ChannelID: m.ChannelID,
-				Content:   string(marshalRes),
+				Content:   fmt.Sprintf("錯誤: %v", err),
 			},
 		)
+		return
 	}
+
+	marshalRes, err := json.Marshal(res)
+	if err != nil {
+		discord.SendMessage(
+			s,
+			&discord.SendMessageInput{
+				ChannelID: m.ChannelID,
+				Content:   fmt.Sprintf("錯誤: %v", err),
+			},
+		)
+		return
+	}
+
+	discord.SendMessage(
+		s,
+		&discord.SendMessageInput{
+			ChannelID: m.ChannelID,
+			Content:   string(marshalRes),
+		},
+	)
 }
