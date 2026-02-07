@@ -21,45 +21,44 @@ func Quote(ctx context.Context, message string) (string, error) {
 	symbol := strings.ToUpper(strSlice[1])
 	logger.Info("查詢股票價格", "symbol", symbol)
 
-	finnhubClient := GetConn("finnhub")
+	client := GetClient("finnhub")
 
-	res, _, err := finnhubClient.Quote(ctx).Symbol(symbol).Execute()
+	res, err := client.GetQuote(ctx, symbol)
 	if err != nil {
 		logger.Error("查詢股票價格失敗", "symbol", symbol, "error", err)
 		return "", err
 	}
 
-	// GetC : Get Current price
-	if res.GetC() == 0 {
+	// CurrentPrice
+	if res.CurrentPrice == 0 {
 		logger.Warn("股票查詢結果為空", "symbol", symbol)
 		return "", fmt.Errorf("搜尋失敗")
 	}
 
-	resStr1 := fmt.Sprintf("Finnhub 查詢標的為:%s 目前價格為:%v 今天漲跌幅:%v%s", symbol, *res.C, *res.Dp, "%")
-	logger.Info("股票查詢成功", "symbol", symbol, "price", *res.C, "change", *res.Dp)
+	resStr1 := fmt.Sprintf("Finnhub 查詢標的為:%s 目前價格為:%v 今天漲跌幅:%v%s", symbol, res.CurrentPrice, res.PercentChange, "%")
+	logger.Info("股票查詢成功", "symbol", symbol, "price", res.CurrentPrice, "change", res.PercentChange)
 
 	return resStr1, nil
 }
 
 // GetChange : 取得漲跌幅
 func GetChange(ctx context.Context, stock string) (float32, error) {
-	finnhubClient := GetConn("finnhub")
+	client := GetClient("finnhub")
 
 	symbol := strings.ToUpper(stock)
 
-	res, _, err := finnhubClient.Quote(ctx).Symbol(symbol).Execute()
-
+	res, err := client.GetQuote(ctx, symbol)
 	if err != nil {
 		return 0, err
 	}
 
-	// GetC : Get Current price
-	if res.GetC() == 0 {
+	// CurrentPrice
+	if res.CurrentPrice == 0 {
 		return 0, fmt.Errorf("搜尋失敗")
 	}
 
-	// GetDp : Get Percent change
-	return res.GetDp(), nil
+	// PercentChange
+	return res.PercentChange, nil
 }
 
 type CalculateInput struct {
@@ -70,16 +69,15 @@ type CalculateInput struct {
 
 // Calculate : 計算成本, 損益
 func Calculate(ctx context.Context, input *CalculateInput) (value, profit float64, err error) {
+	client := GetClient("finnhub")
 
-	finnhubClient := GetConn("finnhub")
-
-	res, _, err := finnhubClient.Quote(ctx).Symbol(input.Symbol).Execute()
+	res, err := client.GetQuote(ctx, input.Symbol)
 	if err != nil {
 		return 0, 0, err
 	}
 
 	// Current price
-	c := res.GetC()
+	c := res.CurrentPrice
 
 	if c == 0 {
 		return 0, 0, fmt.Errorf("搜尋失敗")

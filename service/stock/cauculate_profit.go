@@ -9,7 +9,6 @@ import (
 
 	stockdao "discordBot/model/dao/stock"
 	"discordBot/model/dto"
-	"discordBot/model/redis"
 	"discordBot/pkg/config"
 	"discordBot/pkg/logger"
 	"discordBot/service/discord"
@@ -18,8 +17,25 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// StockRepository 股票數據倉庫接口類型
+type StockRepository interface {
+	Get(ctx context.Context, input *stockdao.GetInput) ([]*dto.Stock, error)
+}
+
 // CalculateProfit : 計算損益
 func CalculateProfit(s *discordgo.Session) {
+	CalculateProfitWithDeps(s, stockDaoDeps{}, redisDeps{})
+}
+
+// stockDaoDeps 封裝 Stock DAO 依賴
+type stockDaoDeps struct{}
+
+func (d stockDaoDeps) Get(ctx context.Context, input *stockdao.GetInput) ([]*dto.Stock, error) {
+	return stockdao.Get(ctx, input)
+}
+
+// CalculateProfitWithDeps 使用指定依賴計算損益（用於測試）
+func CalculateProfitWithDeps(s *discordgo.Session, repo StockRepository, redisClient RedisClient) {
 	taskConfig := config.GetTaskConfig()
 	taskErrorReporter.SetCooldown(durationFromSeconds(taskConfig.ErrorNotifyCooldownSeconds, time.Minute))
 
@@ -34,7 +50,7 @@ func CalculateProfit(s *discordgo.Session) {
 
 	// 先取資料
 	getStockCtx, getStockCancel := context.WithTimeout(ctx, externalTimeout)
-	dbRes, err := stockdao.Get(
+	dbRes, err := repo.Get(
 		getStockCtx,
 		&stockdao.GetInput{
 			UserID: taskConfig.DefaultUserID,
@@ -136,7 +152,7 @@ loop:
 	// 取昨日市場總值
 	redisKey := taskConfig.ProfitReportChannelID + "_" + "totalValue"
 	redisGetCtx, redisGetCancel := context.WithTimeout(ctx, externalTimeout)
-	yesterdayTotalValue, err := redis.Get(redisGetCtx, redisKey)
+	yesterdayTotalValue, err := redisClient.Get(redisGetCtx, redisKey)
 	redisGetCancel()
 	if err != nil {
 		logger.Error("取得昨日市場總值失敗", "error", err)
@@ -215,7 +231,7 @@ loop:
 
 	// 將今日市場總值存入 Redis
 	redisSetCtx, redisSetCancel := context.WithTimeout(ctx, externalTimeout)
-	err = redis.Set(redisSetCtx, redisKey, totalValue, 0)
+	err = redisClient.Set(redisSetCtx, redisKey, totalValue, 0)
 	redisSetCancel()
 	if err != nil {
 		logger.Error("儲存今日市場總值失敗", "error", err)

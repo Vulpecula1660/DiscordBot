@@ -14,8 +14,35 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// RedisClient Redis 客戶端接口類型
+type RedisClient interface {
+	Get(ctx context.Context, key string) (string, error)
+	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
+	LRange(ctx context.Context, key string, start, stop int64) ([]string, error)
+}
+
 // CheckChange : 檢查漲跌幅
 func CheckChange(s *discordgo.Session) {
+	CheckChangeWithDeps(s, redisDeps{})
+}
+
+// redisDeps 封裝 Redis 依賴
+type redisDeps struct{}
+
+func (d redisDeps) Get(ctx context.Context, key string) (string, error) {
+	return redis.Get(ctx, key)
+}
+
+func (d redisDeps) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+	return redis.Set(ctx, key, value, expiration)
+}
+
+func (d redisDeps) LRange(ctx context.Context, key string, start, stop int64) ([]string, error) {
+	return redis.LRange(ctx, key, start, stop)
+}
+
+// CheckChangeWithDeps 使用指定依賴檢查漲跌幅（用於測試）
+func CheckChangeWithDeps(s *discordgo.Session, redisClient RedisClient) {
 	taskConfig := config.GetTaskConfig()
 	taskErrorReporter.SetCooldown(durationFromSeconds(taskConfig.ErrorNotifyCooldownSeconds, time.Minute))
 
@@ -30,7 +57,7 @@ func CheckChange(s *discordgo.Session) {
 
 	// Redis 取出資料
 	fetchCtx, fetchCancel := context.WithTimeout(ctx, externalTimeout)
-	watchList, err := redis.LRange(
+	watchList, err := redisClient.LRange(
 		fetchCtx,
 		"watch_list",
 		0,
@@ -82,7 +109,7 @@ loop:
 
 			// 先看是否已通知過
 			redisGetCtx, redisGetCancel := context.WithTimeout(ctx, externalTimeout)
-			redisRes, err := redis.Get(redisGetCtx, "watch_list:"+symbol)
+			redisRes, err := redisClient.Get(redisGetCtx, "watch_list:"+symbol)
 			redisGetCancel()
 			if err != nil {
 				logger.Error("取得通知紀錄失敗", "symbol", symbol, "error", err)
@@ -140,7 +167,7 @@ loop:
 
 				// 寫入紀錄已通知
 				setCtx, setCancel := context.WithTimeout(ctx, externalTimeout)
-				err = redis.Set(setCtx, "watch_list:"+symbol, "true", time.Hour*8)
+				err = redisClient.Set(setCtx, "watch_list:"+symbol, "true", time.Hour*8)
 				setCancel()
 				if err != nil {
 					logger.Error("寫入通知紀錄失敗", "symbol", symbol, "error", err)

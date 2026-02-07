@@ -1,13 +1,16 @@
 package discord
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"github.com/bwmarrin/discordgo"
+)
 
 type SendMessageInput struct {
 	ChannelID string
 	Content   string
 }
 
-func SendMessage(s *discordgo.Session, input *SendMessageInput) error {
+// SendMessage : 發送消息到指定頻道
+func SendMessage(s Session, input *SendMessageInput) error {
 	_, err := s.ChannelMessageSend(input.ChannelID, input.Content)
 	if err != nil {
 		return err
@@ -15,3 +18,6 @@ func SendMessage(s *discordgo.Session, input *SendMessageInput) error {
 
 	return nil
 }
+
+// Ensure *discordgo.Session implements Session interface
+var _ Session = (*discordgo.Session)(nil)

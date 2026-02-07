@@ -2,8 +2,6 @@ package exchange
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 
 	"discordBot/service/client"
 )
@@ -23,7 +21,33 @@ const (
 	maxRetries     = 3
 )
 
-var httpClient = client.NewHTTPClientWithEnv("EXCHANGE")
+var (
+	httpClient   = client.NewHTTPClientWithEnv("EXCHANGE")
+	rateProvider ExchangeRateProvider
+)
+
+func init() {
+	rateProvider = NewRateProvider(httpClientAdapter{client: httpClient})
+}
+
+// httpClientAdapter 適配器將 HTTPClient 轉換為 HTTPClient 接口
+type httpClientAdapter struct {
+	client *client.HTTPClient
+}
+
+func (a httpClientAdapter) GetWithRetry(ctx context.Context, url string, maxRetries int) ([]byte, error) {
+	return a.client.GetWithRetry(ctx, url, maxRetries)
+}
+
+// SetRateProvider 設置匯率提供者（用於測試）
+func SetRateProvider(provider ExchangeRateProvider) {
+	rateProvider = provider
+}
+
+// ResetRateProvider 重置匯率提供者為默認值
+func ResetRateProvider() {
+	rateProvider = NewRateProvider(httpClientAdapter{client: httpClient})
+}
 
 // ConvertExchange : 換算幣值
 func ConvertExchange(oldMoney []float64) ([]float64, error) {
@@ -32,20 +56,9 @@ func ConvertExchange(oldMoney []float64) ([]float64, error) {
 
 // ConvertExchangeWithContext : 使用指定 context 換算幣值
 func ConvertExchangeWithContext(ctx context.Context, oldMoney []float64) ([]float64, error) {
-	// 先取匯率
-	body, err := httpClient.GetWithRetry(ctx, exchangeAPIURL, maxRetries)
+	exrate, err := rateProvider.GetRate(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch exchange rate: %w", err)
-	}
-
-	info := &apiInfo{}
-	if err := json.Unmarshal(body, info); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal exchange rate: %w", err)
-	}
-
-	exrate := info.USDTWD.Exrate
-	if exrate == 0 {
-		return nil, fmt.Errorf("invalid exchange rate: %f", exrate)
+		return nil, err
 	}
 
 	newMoney := make([]float64, len(oldMoney))
