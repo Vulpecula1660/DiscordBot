@@ -64,15 +64,12 @@ cp .env.example .env
 
 ### 建議配置環境變數
 
-| 變數 | 說明 | 預設值 |
-|------|------|--------|
-| `CRYPTO_PRICE_CHANNEL_ID` | 加密貨幣價格更新頻道 ID | 1032641300077490266 |
-| `WATCH_LIST_CHANNEL_ID` | 股票觀察清單頻道 ID | 960897897166176266 |
-| `PROFIT_REPORT_CHANNEL_ID` | 損益報告頻道 ID | 872317320729616395 |
-| `DEFAULT_USER_ID` | 預設用戶 ID（用於提及） | 512265930735222795 |
-| `CHANNEL_PROFIT_REPORT` | 損益報告頻道 ID（舊版） | - |
-| `CHANNEL_WATCH_LIST` | 觀察清單頻道 ID（舊版） | - |
-| `CHANNEL_CRYPTO_UPDATE` | 加密貨幣更新頻道 ID（舊版） | - |
+| 變數 | 說明 | 必需 |
+|------|------|------|
+| `CRYPTO_PRICE_CHANNEL_ID` | 加密貨幣價格更新頻道 ID | 是 |
+| `WATCH_LIST_CHANNEL_ID` | 股票觀察清單頻道 ID | 是 |
+| `PROFIT_REPORT_CHANNEL_ID` | 損益報告頻道 ID | 是 |
+| `DEFAULT_USER_ID` | 預設用戶 ID（用於提及） | 是 |
 
 ### 可選環境變數
 
@@ -182,13 +179,11 @@ go test ./service/stock
 ```go
 // 股票服務接口
 service/stock/interface.go
-- Quoter: 股票報價和漲跌幅查詢
-- Calculator: 損益計算
-- Repository: 數據存取抽象
+- FinnhubClient: 股票報價 API 客戶端抽象
 
 // Discord 服務接口
-service/discord/interface.go
-- Messenger: 消息發送抽象
+service/discord/session.go
+- Session: Discord 消息發送抽象
 ```
 
 ### 命令路由

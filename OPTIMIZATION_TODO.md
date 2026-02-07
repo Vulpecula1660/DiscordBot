@@ -44,18 +44,18 @@
 降低重複邏輯與未使用抽象，讓後續功能開發更快、更安全。
 
 ### Tasks
-- [ ] 將命令參數解析由 `strings.Split(..., " ")` 改為 `strings.Fields(...)`，提升容錯（`handler/redis_string.go`, `handler/redis_list.go`, `service/stock/set_stock.go`）。
-- [ ] 讓命令路由匹配順序可預期（註冊順序或最長前綴優先），避免 map 迭代不穩定（`handler/router.go`）。
-- [ ] 收斂 bot 自己訊息過濾邏輯，避免 Router 與 handler 重複判斷（`handler/router.go`, `handler/stock.go`, `handler/redis_*.go`）。
-- [ ] 統一 Discord 訊息發送抽象，整合 `service/discord/interface.go` 與 `service/discord/send_message.go`。
-- [ ] 統一 config key 命名並規劃舊 key 遷移（`CHANNEL_*` vs `*_CHANNEL_ID`），移除預設硬編碼頻道 ID。
-- [ ] 清理未使用的 config 型別/方法與介面，降低死碼（`pkg/config/config.go`, `service/stock/interface.go`）。
-- [ ] 優化 DB/Redis 連線池鎖粒度，避免在 lock 內做耗時操作（`model/postgresql/create_conn.go`, `model/redis/create_conn.go`）。
+- [x] 將命令參數解析由 `strings.Split(..., " ")` 改為 `strings.Fields(...)`，提升容錯（`handler/redis_string.go`, `handler/redis_list.go`, `service/stock/set_stock.go`）。
+- [x] 讓命令路由匹配順序可預期（註冊順序或最長前綴優先），避免 map 迭代不穩定（`handler/router.go`）。
+- [x] 收斂 bot 自己訊息過濾邏輯，避免 Router 與 handler 重複判斷（`handler/router.go`, `handler/stock.go`, `handler/redis_*.go`）。
+- [x] 統一 Discord 訊息發送抽象，整合 `service/discord/session.go` 與 `service/discord/send_message.go`。
+- [x] 統一 config key 命名並規劃舊 key 遷移（`CHANNEL_*` vs `*_CHANNEL_ID`），移除預設硬編碼頻道 ID。
+- [x] 清理未使用的 config 型別/方法與介面，降低死碼（`pkg/config/config.go`, `service/stock/interface.go`）。
+- [x] 優化 DB/Redis 連線池鎖粒度，避免在 lock 內做耗時操作（`model/postgresql/create_conn.go`, `model/redis/create_conn.go`）。
 
 ### Done 條件
-- [ ] 命令解析對多空白、尾隨空白有一致行為。
-- [ ] 路由結果在每次啟動都一致可預期。
-- [ ] 設定檔與 env 命名規則一致，無重複來源。
+- [x] 命令解析對多空白、尾隨空白有一致行為。
+- [x] 路由結果在每次啟動都一致可預期。
+- [x] 設定檔與 env 命名規則一致，無重複來源。
 
 ---
 

@@ -15,32 +15,47 @@ var (
 	// Redis連線物件
 	pool map[string]*redis.Client
 
-	// 同步鎖
-	mu *sync.Mutex
+	// 讀寫鎖，減少讀取路徑的競爭
+	mu sync.RWMutex
 )
 
 func init() {
 	pool = make(map[string]*redis.Client)
-	mu = &sync.Mutex{}
 }
 
 // GetConn : 取得redis連線
 func GetConn(name string) (*redis.Client, error) {
-	mu.Lock()
-	defer mu.Unlock()
+	// 快速路徑：讀鎖取得已存在的連線
+	mu.RLock()
+	conn, ok := pool[name]
+	mu.RUnlock()
 
-	if conn, ok := pool[name]; ok {
-		// 驗證連線狀態
+	if ok {
+		// 在鎖外驗證連線狀態，避免阻塞其他 goroutine
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		if err := conn.Ping(ctx).Err(); err != nil {
-			// 連線失敗，重新建立
-			conn.Close()
-			delete(pool, name)
-		} else {
+		if err := conn.Ping(ctx).Err(); err == nil {
 			return conn, nil
 		}
+
+		// 連線失敗，需要重建
+		mu.Lock()
+		// Double-check：其他 goroutine 可能已經重建
+		if currentConn, exists := pool[name]; exists && currentConn == conn {
+			conn.Close()
+			delete(pool, name)
+		}
+		mu.Unlock()
+	}
+
+	// 慢速路徑：寫鎖建立新連線
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Double-check：其他 goroutine 可能已經建立
+	if conn, ok := pool[name]; ok {
+		return conn, nil
 	}
 
 	conn, err := createConn(name)

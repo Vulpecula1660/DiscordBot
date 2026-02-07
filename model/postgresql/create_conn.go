@@ -15,27 +15,44 @@ var (
 	// 資料庫連線物件
 	pool map[string]*sql.DB
 
-	// 同步鎖
-	mu *sync.Mutex
+	// 讀寫鎖，減少讀取路徑的競爭
+	mu sync.RWMutex
 )
 
 func init() {
 	pool = make(map[string]*sql.DB)
-	mu = &sync.Mutex{}
 }
 
 // GetConn : 依照資料庫名稱取得DB連線
 func GetConn(dbName string) (*sql.DB, error) {
-	mu.Lock()
-	defer mu.Unlock()
+	// 快速路徑：讀鎖取得已存在的連線
+	mu.RLock()
+	conn, ok := pool[dbName]
+	mu.RUnlock()
 
-	if conn, ok := pool[dbName]; ok {
+	if ok {
+		// 在鎖外驗證連線狀態，避免阻塞其他 goroutine
 		if err := conn.Ping(); err == nil {
 			return conn, nil
 		}
-		// 連線失效，關閉並移除
-		conn.Close()
-		delete(pool, dbName)
+
+		// 連線失效，需要重建
+		mu.Lock()
+		// Double-check：其他 goroutine 可能已經重建
+		if currentConn, exists := pool[dbName]; exists && currentConn == conn {
+			conn.Close()
+			delete(pool, dbName)
+		}
+		mu.Unlock()
+	}
+
+	// 慢速路徑：寫鎖建立新連線
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Double-check：其他 goroutine 可能已經建立
+	if conn, ok := pool[dbName]; ok {
+		return conn, nil
 	}
 
 	conn, err := createConn(dbName)

@@ -15,10 +15,10 @@ import (
 // SetStock : 將股票新增到 DB
 func SetStock(ctx context.Context, m *discordgo.MessageCreate) error {
 	// example : $set_stock TSLA units price
-	strSlice := strings.Split(m.Content, " ")
+	strSlice := strings.Fields(m.Content)
 
 	if len(strSlice) != 4 {
-		return fmt.Errorf("參數錯誤")
+		return fmt.Errorf("參數錯誤，格式: $set_stock <symbol> <units> <price>")
 	}
 
 	symbol := strSlice[1]
@@ -54,10 +54,10 @@ func SetStock(ctx context.Context, m *discordgo.MessageCreate) error {
 // GetStock : DB 取得股票
 func GetStock(ctx context.Context, m *discordgo.MessageCreate) ([]*dto.Stock, error) {
 	// example : $get_stock TSLA
-	strSlice := strings.Split(m.Content, " ")
+	strSlice := strings.Fields(m.Content)
 
 	if len(strSlice) != 2 {
-		return nil, fmt.Errorf("參數錯誤")
+		return nil, fmt.Errorf("參數錯誤，格式: $get_stock <symbol>")
 	}
 
 	symbol := strSlice[1]
