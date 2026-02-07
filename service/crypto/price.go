@@ -27,8 +27,11 @@ var httpClient = client.NewHTTPClientWithEnv("CRYPTO")
 
 // GetPrice 獲取ETH當前價格
 func GetPrice() (float64, error) {
-	ctx := context.Background()
+	return GetPriceWithContext(context.Background())
+}
 
+// GetPriceWithContext 使用指定 context 獲取ETH當前價格
+func GetPriceWithContext(ctx context.Context) (float64, error) {
 	body, err := httpClient.GetWithRetry(ctx, coingeckoAPIURL, maxRetries)
 	if err != nil {
 		return 0, fmt.Errorf("failed to fetch crypto price: %w", err)

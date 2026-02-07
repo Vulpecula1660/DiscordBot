@@ -124,15 +124,33 @@ type TaskConfig struct {
 	ProfitReportChannelID string
 	// 默認用戶ID（用於收益報告）
 	DefaultUserID string
+	// CheckChange 任務併發上限
+	CheckChangeMaxConcurrency int
+	// CalculateProfit 任務併發上限
+	CalculateProfitMaxConcurrency int
+	// CheckChange 任務總超時（秒）
+	CheckChangeTimeoutSeconds int
+	// CalculateProfit 任務總超時（秒）
+	CalculateProfitTimeoutSeconds int
+	// 單次外部呼叫超時（秒）
+	ExternalCallTimeoutSeconds int
+	// 任務錯誤通知節流間隔（秒）
+	ErrorNotifyCooldownSeconds int
 }
 
 // GetTaskConfig 獲取定時任務配置
 func GetTaskConfig() *TaskConfig {
 	return &TaskConfig{
-		CryptoPriceChannelID:  getEnv("CRYPTO_PRICE_CHANNEL_ID", "1032641300077490266"),
-		WatchListChannelID:    getEnv("WATCH_LIST_CHANNEL_ID", "960897897166176266"),
-		ProfitReportChannelID: getEnv("PROFIT_REPORT_CHANNEL_ID", "872317320729616395"),
-		DefaultUserID:         getEnv("DEFAULT_USER_ID", "512265930735222795"),
+		CryptoPriceChannelID:          getEnv("CRYPTO_PRICE_CHANNEL_ID", "1032641300077490266"),
+		WatchListChannelID:            getEnv("WATCH_LIST_CHANNEL_ID", "960897897166176266"),
+		ProfitReportChannelID:         getEnv("PROFIT_REPORT_CHANNEL_ID", "872317320729616395"),
+		DefaultUserID:                 getEnv("DEFAULT_USER_ID", "512265930735222795"),
+		CheckChangeMaxConcurrency:     getEnvInt("TASK_CHECK_CHANGE_MAX_CONCURRENCY", 5),
+		CalculateProfitMaxConcurrency: getEnvInt("TASK_CALCULATE_PROFIT_MAX_CONCURRENCY", 5),
+		CheckChangeTimeoutSeconds:     getEnvInt("TASK_CHECK_CHANGE_TIMEOUT_SECONDS", 120),
+		CalculateProfitTimeoutSeconds: getEnvInt("TASK_CALCULATE_PROFIT_TIMEOUT_SECONDS", 180),
+		ExternalCallTimeoutSeconds:    getEnvInt("TASK_EXTERNAL_CALL_TIMEOUT_SECONDS", 15),
+		ErrorNotifyCooldownSeconds:    getEnvInt("TASK_ERROR_NOTIFY_COOLDOWN_SECONDS", 60),
 	}
 }
 

@@ -16,22 +16,32 @@ import (
 
 // CheckChange : 檢查漲跌幅
 func CheckChange(s *discordgo.Session) {
-	ctx := context.Background()
 	taskConfig := config.GetTaskConfig()
+	taskErrorReporter.SetCooldown(durationFromSeconds(taskConfig.ErrorNotifyCooldownSeconds, time.Minute))
 
-	logger.Info("開始檢查股票漲跌幅")
+	runTimeout := durationFromSeconds(taskConfig.CheckChangeTimeoutSeconds, 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), runTimeout)
+	defer cancel()
+
+	externalTimeout := durationFromSeconds(taskConfig.ExternalCallTimeoutSeconds, 15*time.Second)
+	maxConcurrency := normalizeConcurrency(taskConfig.CheckChangeMaxConcurrency, 5)
+
+	logger.Info("開始檢查股票漲跌幅", "maxConcurrency", maxConcurrency, "timeout", runTimeout.String())
 
 	// Redis 取出資料
+	fetchCtx, fetchCancel := context.WithTimeout(ctx, externalTimeout)
 	watchList, err := redis.LRange(
-		ctx,
+		fetchCtx,
 		"watch_list",
 		0,
 		-1,
 	)
+	fetchCancel()
 	if err != nil {
 		logger.Error("取得觀察列表失敗", "error", err)
-		discord.SendMessage(
+		taskErrorReporter.Notify(
 			s,
+			"check_change:watch_list:lrange",
 			&discord.SendMessageInput{
 				ChannelID: taskConfig.WatchListChannelID,
 				Content:   fmt.Sprintf("取得列表時錯誤: %v", err),
@@ -41,19 +51,44 @@ func CheckChange(s *discordgo.Session) {
 	}
 
 	logger.Info("取得觀察列表", "count", len(watchList))
+	if len(watchList) == 0 {
+		logger.Info("觀察列表為空，略過漲跌幅檢查")
+		return
+	}
 
 	var wg sync.WaitGroup
-	wg.Add(len(watchList))
+	sem := make(chan struct{}, maxConcurrency)
 
+loop:
 	for _, v := range watchList {
+		if err := ctx.Err(); err != nil {
+			logger.Warn("檢查任務超時，停止派發剩餘標的", "error", err)
+			break
+		}
+
+		select {
+		case sem <- struct{}{}:
+		case <-ctx.Done():
+			logger.Warn("檢查任務超時，停止派發剩餘標的", "error", ctx.Err())
+			break loop
+		}
+
+		wg.Add(1)
 		go func(symbol string) {
 			defer wg.Done()
+			defer func() {
+				<-sem
+			}()
+
 			// 先看是否已通知過
-			redisRes, err := redis.Get(ctx, "watch_list:"+symbol)
+			redisGetCtx, redisGetCancel := context.WithTimeout(ctx, externalTimeout)
+			redisRes, err := redis.Get(redisGetCtx, "watch_list:"+symbol)
+			redisGetCancel()
 			if err != nil {
 				logger.Error("取得通知紀錄失敗", "symbol", symbol, "error", err)
-				discord.SendMessage(
+				taskErrorReporter.Notify(
 					s,
+					"check_change:watch_list:get_record",
 					&discord.SendMessageInput{
 						ChannelID: taskConfig.WatchListChannelID,
 						Content:   fmt.Sprintf("取得紀錄時錯誤: %v", err),
@@ -66,11 +101,14 @@ func CheckChange(s *discordgo.Session) {
 				return
 			}
 
-			change, err := GetChange(ctx, symbol)
+			changeCtx, changeCancel := context.WithTimeout(ctx, externalTimeout)
+			change, err := GetChange(changeCtx, symbol)
+			changeCancel()
 			if err != nil {
 				logger.Error("取得漲跌幅失敗", "symbol", symbol, "error", err)
-				discord.SendMessage(
+				taskErrorReporter.Notify(
 					s,
+					"check_change:watch_list:get_change",
 					&discord.SendMessageInput{
 						ChannelID: taskConfig.WatchListChannelID,
 						Content:   fmt.Sprintf("取得漲跌幅時錯誤: %v", err),
@@ -89,8 +127,9 @@ func CheckChange(s *discordgo.Session) {
 				})
 				if err != nil {
 					logger.Error("發送警告訊息失敗", "symbol", symbol, "error", err)
-					discord.SendMessage(
+					taskErrorReporter.Notify(
 						s,
+						"check_change:watch_list:send_alert",
 						&discord.SendMessageInput{
 							ChannelID: taskConfig.WatchListChannelID,
 							Content:   fmt.Sprintf("發送訊息時錯誤: %v", err),
@@ -100,11 +139,14 @@ func CheckChange(s *discordgo.Session) {
 				}
 
 				// 寫入紀錄已通知
-				err = redis.Set(ctx, "watch_list:"+symbol, "true", time.Hour*8)
+				setCtx, setCancel := context.WithTimeout(ctx, externalTimeout)
+				err = redis.Set(setCtx, "watch_list:"+symbol, "true", time.Hour*8)
+				setCancel()
 				if err != nil {
 					logger.Error("寫入通知紀錄失敗", "symbol", symbol, "error", err)
-					discord.SendMessage(
+					taskErrorReporter.Notify(
 						s,
+						"check_change:watch_list:set_record",
 						&discord.SendMessageInput{
 							ChannelID: taskConfig.WatchListChannelID,
 							Content:   fmt.Sprintf("寫入紀錄時錯誤: %v", err),
@@ -117,5 +159,17 @@ func CheckChange(s *discordgo.Session) {
 	}
 
 	wg.Wait()
+	if err := ctx.Err(); err != nil && err != context.Canceled {
+		logger.Warn("股票漲跌幅檢查任務逾時", "error", err)
+		taskErrorReporter.Notify(
+			s,
+			"check_change:timeout",
+			&discord.SendMessageInput{
+				ChannelID: taskConfig.WatchListChannelID,
+				Content:   fmt.Sprintf("股票漲跌幅檢查任務逾時: %v", err),
+			},
+		)
+	}
+
 	logger.Info("完成股票漲跌幅檢查")
 }

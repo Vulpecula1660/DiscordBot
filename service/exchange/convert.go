@@ -27,8 +27,11 @@ var httpClient = client.NewHTTPClientWithEnv("EXCHANGE")
 
 // ConvertExchange : 換算幣值
 func ConvertExchange(oldMoney []float64) ([]float64, error) {
-	ctx := context.Background()
+	return ConvertExchangeWithContext(context.Background(), oldMoney)
+}
 
+// ConvertExchangeWithContext : 使用指定 context 換算幣值
+func ConvertExchangeWithContext(ctx context.Context, oldMoney []float64) ([]float64, error) {
 	// 先取匯率
 	body, err := httpClient.GetWithRetry(ctx, exchangeAPIURL, maxRetries)
 	if err != nil {
