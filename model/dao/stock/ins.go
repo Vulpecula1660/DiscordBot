@@ -4,7 +4,6 @@ import (
 	"context"
 	dbSQL "database/sql"
 	"fmt"
-	"os"
 
 	"discordBot/model/dto"
 	"discordBot/model/postgresql"
@@ -20,7 +19,7 @@ func Ins(ctx context.Context, tx *dbSQL.Tx, input *dto.Stock) (err error) {
 	var dbM *dbSQL.DB
 
 	if tx == nil {
-		dbM, err = postgresql.GetConn(os.Getenv("DATABASE_Name"))
+		dbM, err = postgresql.GetConn()
 		if err != nil {
 			return fmt.Errorf("failed to get database connection: %w", err)
 		}

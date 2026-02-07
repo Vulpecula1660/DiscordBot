@@ -9,7 +9,7 @@ import (
 
 // Set : 資料寫入Redis中
 func Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-	conn, err := GetConn("Redis")
+	conn, err := getClient()
 	if err != nil {
 		return err
 	}
@@ -19,7 +19,7 @@ func Set(ctx context.Context, key string, value interface{}, expiration time.Dur
 
 // Get : 從 Redis 取得資料
 func Get(ctx context.Context, key string) (string, error) {
-	conn, err := GetConn("Redis")
+	conn, err := getClient()
 	if err != nil {
 		return "", err
 	}
@@ -40,7 +40,7 @@ func Get(ctx context.Context, key string) (string, error) {
 
 // Del : 從 Redis 刪除資料
 func Del(ctx context.Context, key string) error {
-	conn, err := GetConn("Redis")
+	conn, err := getClient()
 	if err != nil {
 		return err
 	}

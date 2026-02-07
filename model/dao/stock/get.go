@@ -3,7 +3,6 @@ package stock
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"discordBot/model/dto"
@@ -19,7 +18,7 @@ type GetInput struct {
 
 // Get : 取得 d9fdq7n9q3delq.stock
 func Get(ctx context.Context, input *GetInput) (ret []*dto.Stock, err error) {
-	dbS, err := postgresql.GetConn(os.Getenv("DATABASE_Name"))
+	dbS, err := postgresql.GetConn()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database connection: %w", err)
 	}

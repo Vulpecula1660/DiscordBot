@@ -15,61 +15,30 @@ import (
 
 var (
 	// 資料庫連線物件
-	pool map[string]*sql.DB
-
-	// 讀寫鎖，減少讀取路徑的競爭
-	mu sync.RWMutex
+	db *sql.DB
+	mu sync.Mutex
 )
 
-func init() {
-	pool = make(map[string]*sql.DB)
-}
-
-// GetConn : 依照資料庫名稱取得DB連線
-func GetConn(dbName string) (*sql.DB, error) {
-	// 快速路徑：讀鎖取得已存在的連線
-	mu.RLock()
-	conn, ok := pool[dbName]
-	mu.RUnlock()
-
-	if ok {
-		// 在鎖外驗證連線狀態，避免阻塞其他 goroutine
-		if err := conn.Ping(); err == nil {
-			return conn, nil
-		}
-
-		// 連線失效，需要重建
-		mu.Lock()
-		// Double-check：其他 goroutine 可能已經重建
-		if currentConn, exists := pool[dbName]; exists && currentConn == conn {
-			if err := conn.Close(); err != nil {
-				logger.Error("關閉資料庫連線失敗", "dbName", dbName, "error", err)
-			}
-			delete(pool, dbName)
-		}
-		mu.Unlock()
-	}
-
-	// 慢速路徑：寫鎖建立新連線
+// GetConn : 取得資料庫連線
+func GetConn() (*sql.DB, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	// Double-check：其他 goroutine 可能已經建立
-	if conn, ok := pool[dbName]; ok {
-		return conn, nil
+	if db != nil {
+		return db, nil
 	}
 
-	conn, err := createConn(dbName)
+	conn, err := createConn()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create database connection: %w", err)
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
 	}
 
-	pool[dbName] = conn
-	return conn, nil
+	db = conn
+	return db, nil
 }
 
 // createConn : 建立資料庫連線
-func createConn(dbName string) (*sql.DB, error) {
+func createConn() (*sql.DB, error) {
 	host := os.Getenv("DATABASE_Host")
 	port := os.Getenv("DATABASE_Port")
 	user := os.Getenv("DATABASE_User")
@@ -85,43 +54,39 @@ func createConn(dbName string) (*sql.DB, error) {
 		host, port, user, password, database,
 	)
 
-	db, err := sql.Open("postgres", connectionString)
+	conn, err := sql.Open("postgres", connectionString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
 	// 配置連接池
-	db.SetMaxOpenConns(getEnvInt("DB_MAX_OPEN_CONNS", 25))
-	db.SetMaxIdleConns(getEnvInt("DB_MAX_IDLE_CONNS", 10))
-	db.SetConnMaxLifetime(getEnvDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute))
-	db.SetConnMaxIdleTime(getEnvDuration("DB_CONN_MAX_IDLE_TIME", 10*time.Minute))
+	conn.SetMaxOpenConns(getEnvInt("DB_MAX_OPEN_CONNS", 25))
+	conn.SetMaxIdleConns(getEnvInt("DB_MAX_IDLE_CONNS", 10))
+	conn.SetConnMaxLifetime(getEnvDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute))
+	conn.SetConnMaxIdleTime(getEnvDuration("DB_CONN_MAX_IDLE_TIME", 10*time.Minute))
 
 	// 驗證連線
-	if err := db.Ping(); err != nil {
-		if closeErr := db.Close(); closeErr != nil {
+	if err := conn.Ping(); err != nil {
+		if closeErr := conn.Close(); closeErr != nil {
 			logger.Error("關閉資料庫連線失敗", "error", closeErr)
 		}
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return db, nil
+	return conn, nil
 }
 
-// CloseAll : 關閉所有數據庫連線
-func CloseAll() error {
+// Close : 關閉資料庫連線
+func Close() error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	var errs []error
-	for name, conn := range pool {
-		if err := conn.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("failed to close database connection %s: %w", name, err))
+	if db != nil {
+		if err := db.Close(); err != nil {
+			logger.Error("關閉資料庫連線失敗", "error", err)
+			return fmt.Errorf("failed to close database connection: %w", err)
 		}
-		delete(pool, name)
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("errors closing database connections: %v", errs)
+		db = nil
 	}
 	return nil
 }

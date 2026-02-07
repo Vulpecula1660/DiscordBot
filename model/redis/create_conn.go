@@ -14,65 +14,31 @@ import (
 )
 
 var (
-	// Redis連線物件
-	pool map[string]*redis.Client
-
-	// 讀寫鎖，減少讀取路徑的競爭
-	mu sync.RWMutex
+	// Redis 連線物件
+	client *redis.Client
+	mu     sync.Mutex
 )
 
-func init() {
-	pool = make(map[string]*redis.Client)
-}
-
-// GetConn : 取得redis連線
-func GetConn(name string) (*redis.Client, error) {
-	// 快速路徑：讀鎖取得已存在的連線
-	mu.RLock()
-	conn, ok := pool[name]
-	mu.RUnlock()
-
-	if ok {
-		// 在鎖外驗證連線狀態，避免阻塞其他 goroutine
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		if err := conn.Ping(ctx).Err(); err == nil {
-			return conn, nil
-		}
-
-		// 連線失敗，需要重建
-		mu.Lock()
-		// Double-check：其他 goroutine 可能已經重建
-		if currentConn, exists := pool[name]; exists && currentConn == conn {
-			if err := conn.Close(); err != nil {
-				logger.Error("關閉Redis連線失敗", "name", name, "error", err)
-			}
-			delete(pool, name)
-		}
-		mu.Unlock()
-	}
-
-	// 慢速路徑：寫鎖建立新連線
+// getClient : 取得 Redis 連線
+func getClient() (*redis.Client, error) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	// Double-check：其他 goroutine 可能已經建立
-	if conn, ok := pool[name]; ok {
-		return conn, nil
+	if client != nil {
+		return client, nil
 	}
 
-	conn, err := createConn(name)
+	conn, err := createConn()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create redis connection: %w", err)
+		return nil, fmt.Errorf("failed to get redis connection: %w", err)
 	}
 
-	pool[name] = conn
-	return conn, nil
+	client = conn
+	return client, nil
 }
 
-// createConn : 建立redis連線
-func createConn(name string) (*redis.Client, error) {
+// createConn : 建立 Redis 連線
+func createConn() (*redis.Client, error) {
 	redisHost := os.Getenv("REDIS_URL")
 	if redisHost == "" {
 		return nil, fmt.Errorf("REDIS_URL environment variable is not set")
@@ -91,34 +57,30 @@ func createConn(name string) (*redis.Client, error) {
 	opt.WriteTimeout = getEnvDuration("REDIS_WRITE_TIMEOUT", 10*time.Second)
 	opt.PoolTimeout = getEnvDuration("REDIS_POOL_TIMEOUT", 30*time.Second)
 
-	client := redis.NewClient(opt)
+	c := redis.NewClient(opt)
 
 	// 驗證連線
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := client.Ping(ctx).Err(); err != nil {
+	if err := c.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("failed to ping redis: %w", err)
 	}
 
-	return client, nil
+	return c, nil
 }
 
-// CloseAll : 關閉所有Redis連線
-func CloseAll() error {
+// Close : 關閉 Redis 連線
+func Close() error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	var errs []error
-	for name, conn := range pool {
-		if err := conn.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("failed to close redis connection %s: %w", name, err))
+	if client != nil {
+		if err := client.Close(); err != nil {
+			logger.Error("關閉Redis連線失敗", "error", err)
+			return fmt.Errorf("failed to close redis connection: %w", err)
 		}
-		delete(pool, name)
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("errors closing redis connections: %v", errs)
+		client = nil
 	}
 	return nil
 }

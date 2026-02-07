@@ -89,14 +89,14 @@ func main() {
 		logger.Info("定時任務已停止")
 
 		// 關閉資料庫連線
-		if err := postgresql.CloseAll(); err != nil {
+		if err := postgresql.Close(); err != nil {
 			logger.Error("關閉資料庫連線失敗", "error", err)
 		} else {
 			logger.Info("資料庫連線已關閉")
 		}
 
 		// 關閉 Redis 連線
-		if err := redis.CloseAll(); err != nil {
+		if err := redis.Close(); err != nil {
 			logger.Error("關閉 Redis 連線失敗", "error", err)
 		} else {
 			logger.Info("Redis 連線已關閉")
