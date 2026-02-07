@@ -8,6 +8,7 @@ import (
 
 	"discordBot/model/dto"
 	"discordBot/model/postgresql"
+	"discordBot/pkg/logger"
 )
 
 // GetInput :
@@ -38,7 +39,6 @@ func Get(ctx context.Context, input *GetInput) (ret []*dto.Stock, err error) {
 	if input.Symbol != "" {
 		wheres = append(wheres, fmt.Sprintf(" symbol = $%d ", paramIndex))
 		params = append(params, input.Symbol)
-		paramIndex++
 	}
 
 	// 沒有條件時回傳錯誤
@@ -52,7 +52,11 @@ func Get(ctx context.Context, input *GetInput) (ret []*dto.Stock, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("select 錯誤: %v", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logger.Error("關閉資料庫查詢結果失敗", "error", err)
+		}
+	}()
 
 	for rows.Next() {
 		data := &dto.Stock{}

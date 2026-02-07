@@ -9,6 +9,8 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+
+	"discordBot/pkg/logger"
 )
 
 var (
@@ -40,7 +42,9 @@ func GetConn(dbName string) (*sql.DB, error) {
 		mu.Lock()
 		// Double-check：其他 goroutine 可能已經重建
 		if currentConn, exists := pool[dbName]; exists && currentConn == conn {
-			conn.Close()
+			if err := conn.Close(); err != nil {
+				logger.Error("關閉資料庫連線失敗", "dbName", dbName, "error", err)
+			}
 			delete(pool, dbName)
 		}
 		mu.Unlock()
@@ -94,7 +98,9 @@ func createConn(dbName string) (*sql.DB, error) {
 
 	// 驗證連線
 	if err := db.Ping(); err != nil {
-		db.Close()
+		if closeErr := db.Close(); closeErr != nil {
+			logger.Error("關閉資料庫連線失敗", "error", closeErr)
+		}
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 

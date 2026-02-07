@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"discordBot/pkg/logger"
 )
 
 var (
@@ -43,7 +45,9 @@ func GetConn(name string) (*redis.Client, error) {
 		mu.Lock()
 		// Double-check：其他 goroutine 可能已經重建
 		if currentConn, exists := pool[name]; exists && currentConn == conn {
-			conn.Close()
+			if err := conn.Close(); err != nil {
+				logger.Error("關閉Redis連線失敗", "name", name, "error", err)
+			}
 			delete(pool, name)
 		}
 		mu.Unlock()
