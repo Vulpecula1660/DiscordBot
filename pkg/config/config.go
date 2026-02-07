@@ -3,7 +3,6 @@ package config
 import (
 	"os"
 	"strconv"
-	"time"
 )
 
 // DiscordConfig 包含Discord相關配置
@@ -46,14 +45,14 @@ type CryptoChannels struct {
 func GetChannelConfig() *ChannelConfig {
 	return &ChannelConfig{
 		StockChannels: StockChannels{
-			ProfitReport: GetEnv("CHANNEL_PROFIT_REPORT", ""),
-			PriceCheck:   GetEnv("CHANNEL_PRICE_CHECK", ""),
+			ProfitReport: getEnv("CHANNEL_PROFIT_REPORT", ""),
+			PriceCheck:   getEnv("CHANNEL_PRICE_CHECK", ""),
 		},
 		WatchListChannels: WatchListChannels{
-			WatchList: GetEnv("CHANNEL_WATCH_LIST", ""),
+			WatchList: getEnv("CHANNEL_WATCH_LIST", ""),
 		},
 		CryptoChannels: CryptoChannels{
-			PriceUpdate: GetEnv("CHANNEL_CRYPTO_UPDATE", ""),
+			PriceUpdate: getEnv("CHANNEL_CRYPTO_UPDATE", ""),
 		},
 	}
 }
@@ -67,7 +66,7 @@ type UserConfig struct {
 // GetUserConfig 獲取用戶配置
 func GetUserConfig() *UserConfig {
 	return &UserConfig{
-		DefaultUserID: GetEnv("DEFAULT_USER_ID", ""),
+		DefaultUserID: getEnv("DEFAULT_USER_ID", ""),
 	}
 }
 
@@ -130,25 +129,22 @@ type TaskConfig struct {
 // GetTaskConfig 獲取定時任務配置
 func GetTaskConfig() *TaskConfig {
 	return &TaskConfig{
-		CryptoPriceChannelID:  GetEnv("CRYPTO_PRICE_CHANNEL_ID", "1032641300077490266"),
-		WatchListChannelID:    GetEnv("WATCH_LIST_CHANNEL_ID", "960897897166176266"),
-		ProfitReportChannelID: GetEnv("PROFIT_REPORT_CHANNEL_ID", "872317320729616395"),
-		DefaultUserID:         GetEnv("DEFAULT_USER_ID", "512265930735222795"),
+		CryptoPriceChannelID:  getEnv("CRYPTO_PRICE_CHANNEL_ID", "1032641300077490266"),
+		WatchListChannelID:    getEnv("WATCH_LIST_CHANNEL_ID", "960897897166176266"),
+		ProfitReportChannelID: getEnv("PROFIT_REPORT_CHANNEL_ID", "872317320729616395"),
+		DefaultUserID:         getEnv("DEFAULT_USER_ID", "512265930735222795"),
 	}
 }
 
 // Helper functions
-
-// GetEnv : 從環境變量獲取字串值，帶有默認值
-func GetEnv(key, defaultVal string) string {
+func getEnv(key, defaultVal string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
 	}
 	return defaultVal
 }
 
-// GetEnvInt : 從環境變量獲取整數值，帶有默認值
-func GetEnvInt(key string, defaultVal int) int {
+func getEnvInt(key string, defaultVal int) int {
 	if val := os.Getenv(key); val != "" {
 		if intVal, err := strconv.Atoi(val); err == nil {
 			return intVal
@@ -157,8 +153,7 @@ func GetEnvInt(key string, defaultVal int) int {
 	return defaultVal
 }
 
-// GetEnvFloat64 : 從環境變量獲取浮點數值，帶有默認值
-func GetEnvFloat64(key string, defaultVal float64) float64 {
+func getEnvFloat64(key string, defaultVal float64) float64 {
 	if val := os.Getenv(key); val != "" {
 		if floatVal, err := strconv.ParseFloat(val, 64); err == nil {
 			return floatVal
@@ -167,21 +162,10 @@ func GetEnvFloat64(key string, defaultVal float64) float64 {
 	return defaultVal
 }
 
-// GetEnvBool : 從環境變量獲取布林值，帶有默認值
-func GetEnvBool(key string, defaultVal bool) bool {
+func getEnvBool(key string, defaultVal bool) bool {
 	if val := os.Getenv(key); val != "" {
 		if boolVal, err := strconv.ParseBool(val); err == nil {
 			return boolVal
-		}
-	}
-	return defaultVal
-}
-
-// GetEnvDuration : 從環境變量獲取時間值，帶有默認值
-func GetEnvDuration(key string, defaultVal time.Duration) time.Duration {
-	if val := os.Getenv(key); val != "" {
-		if duration, err := time.ParseDuration(val); err == nil {
-			return duration
 		}
 	}
 	return defaultVal

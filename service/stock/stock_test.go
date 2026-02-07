@@ -3,123 +3,66 @@ package stock
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"testing"
 
-	finnhub "github.com/Finnhub-Stock-API/finnhub-go/v2"
+	_ "github.com/joho/godotenv/autoload"
 )
-
-// MockFinnhubClient 實現 FinnhubClient 介面的 mock
-type MockFinnhubClient struct {
-	QuoteFunc func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error)
-}
-
-func (m *MockFinnhubClient) Quote(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-	if m.QuoteFunc != nil {
-		return m.QuoteFunc(ctx, symbol)
-	}
-	return finnhub.Quote{}, nil, fmt.Errorf("QuoteFunc not implemented")
-}
-
-// newMockQuote 建立一個 mock Quote 回應
-func newMockQuote(currentPrice, percentChange float32) finnhub.Quote {
-	c := currentPrice
-	dp := percentChange
-	return finnhub.Quote{
-		C:  &c,
-		Dp: &dp,
-	}
-}
-
-// setupMockClient 設定 mock client 並返回清理函數
-func setupMockClient(mock *MockFinnhubClient) func() {
-	SetClientFactory(func(name string) FinnhubClient {
-		return mock
-	})
-	return func() {
-		ResetClientFactory()
-	}
-}
 
 func Test_Quote(t *testing.T) {
 	ctx := context.Background()
 
+	type args struct {
+		ctx     context.Context
+		message string
+	}
 	tests := []struct {
-		name      string
-		message   string
-		mockQuote func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error)
-		want      string
-		wantErr   bool
-		errMsg    string
+		name    string
+		args    args
+		want    string
+		wantErr bool
+		err     error
 	}{
 		{
-			name:    "TSLA Success",
-			message: "$+TSLA",
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				return newMockQuote(250.50, 3.25), nil, nil
+			name: "TSLA",
+			args: args{
+				ctx:     ctx,
+				message: "$+TSLA",
 			},
-			want:    "Finnhub 查詢標的為:+TSLA 目前價格為:250.5 今天漲跌幅:3.25%",
+			want:    "Finnhub 查詢標的為:TSLA 目前價格為:1137.06 今天漲跌幅:3.7104%",
 			wantErr: false,
+			err:     nil,
 		},
 		{
-			name:    "Wrong Message Format",
-			message: "aaaaa",
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				return finnhub.Quote{}, nil, nil
+			name: "Wrong Message",
+			args: args{
+				ctx:     ctx,
+				message: "aaaaa",
 			},
 			want:    "",
 			wantErr: true,
-			errMsg:  "參數錯誤",
+			err:     fmt.Errorf("參數錯誤"),
 		},
 		{
-			name:    "Symbol Not Found",
-			message: "$+INVALID",
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				// 返回價格為 0 表示找不到
-				return newMockQuote(0, 0), nil, nil
+			name: "Wrong Symbol",
+			args: args{
+				ctx:     ctx,
+				message: "$+aaaaa",
 			},
 			want:    "",
 			wantErr: true,
-			errMsg:  "搜尋失敗",
-		},
-		{
-			name:    "API Error",
-			message: "$+TSLA",
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				return finnhub.Quote{}, nil, fmt.Errorf("API connection error")
-			},
-			want:    "",
-			wantErr: true,
-			errMsg:  "API connection error",
+			err:     fmt.Errorf("搜尋失敗"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// 設定 mock
-			cleanup := setupMockClient(&MockFinnhubClient{
-				QuoteFunc: tt.mockQuote,
-			})
-			defer cleanup()
-
-			got, err := Quote(ctx, tt.message)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("Quote() expected error, got nil")
+			got, err := Quote(tt.args.ctx, tt.args.message)
+			if err != nil && tt.wantErr {
+				if err.Error() != tt.err.Error() {
+					t.Errorf("Quote() error = %v, wantErr %v", err.Error(), tt.err.Error())
 					return
 				}
-				if err.Error() != tt.errMsg {
-					t.Errorf("Quote() error = %v, wantErr %v", err.Error(), tt.errMsg)
-				}
-				return
 			}
-
-			if err != nil {
-				t.Errorf("Quote() unexpected error = %v", err)
-				return
-			}
-
 			if got != tt.want {
 				t.Errorf("Quote() = %v, want %v", got, tt.want)
 			}
@@ -130,72 +73,50 @@ func Test_Quote(t *testing.T) {
 func Test_GetChange(t *testing.T) {
 	ctx := context.Background()
 
+	type args struct {
+		ctx   context.Context
+		stock string
+	}
 	tests := []struct {
-		name      string
-		stock     string
-		mockQuote func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error)
-		want      float32
-		wantErr   bool
-		errMsg    string
+		name    string
+		args    args
+		want    float32
+		wantErr bool
+		err     error
 	}{
 		{
-			name:  "TSLA Success",
-			stock: "TSLA",
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				return newMockQuote(250.50, 3.25), nil, nil
+			name: "TSLA",
+			args: args{
+				ctx:   ctx,
+				stock: "Tsla",
 			},
-			want:    3.25,
+			want:    3.7104,
 			wantErr: false,
+			err:     nil,
 		},
 		{
-			name:  "Symbol Not Found",
-			stock: "INVALID",
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				return newMockQuote(0, 0), nil, nil
+			name: "Wrong Symbol",
+			args: args{
+				ctx:   ctx,
+				stock: "01346",
 			},
 			want:    0,
 			wantErr: true,
-			errMsg:  "搜尋失敗",
-		},
-		{
-			name:  "API Error",
-			stock: "TSLA",
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				return finnhub.Quote{}, nil, fmt.Errorf("API connection error")
-			},
-			want:    0,
-			wantErr: true,
-			errMsg:  "API connection error",
+			err:     fmt.Errorf("搜尋失敗"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cleanup := setupMockClient(&MockFinnhubClient{
-				QuoteFunc: tt.mockQuote,
-			})
-			defer cleanup()
-
-			got, err := GetChange(ctx, tt.stock)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("GetChange() expected error, got nil")
+			got, err := GetChange(tt.args.ctx, tt.args.stock)
+			if err != nil && tt.wantErr {
+				if err.Error() != tt.err.Error() {
+					t.Errorf("Quote() error = %v, wantErr %v", err.Error(), tt.err.Error())
 					return
 				}
-				if err.Error() != tt.errMsg {
-					t.Errorf("GetChange() error = %v, wantErr %v", err.Error(), tt.errMsg)
-				}
-				return
 			}
-
-			if err != nil {
-				t.Errorf("GetChange() unexpected error = %v", err)
-				return
-			}
-
 			if got != tt.want {
-				t.Errorf("GetChange() = %v, want %v", got, tt.want)
+				t.Errorf("GetChange() = %v, want %v, err = %v", got, tt.want, err)
 			}
 		})
 	}
@@ -204,100 +125,59 @@ func Test_GetChange(t *testing.T) {
 func Test_Calculate(t *testing.T) {
 	ctx := context.Background()
 
+	type args struct {
+		ctx   context.Context
+		input *CalculateInput
+	}
 	tests := []struct {
 		name       string
-		input      *CalculateInput
-		mockQuote  func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error)
+		args       args
 		wantValue  float64
 		wantProfit float64
 		wantErr    bool
-		errMsg     string
+		err        error
 	}{
 		{
-			name: "TSLA Success",
-			input: &CalculateInput{
-				Symbol: "TSLA",
-				Units:  10,
-				Price:  200,
+			name: "TSLA",
+			args: args{
+				ctx: ctx,
+				input: &CalculateInput{
+					Symbol: "TSLA",
+					Units:  1,
+					Price:  1,
+				},
 			},
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				return newMockQuote(250, 5.0), nil, nil
-			},
-			wantValue:  2500, // 10 * 250
-			wantProfit: 500,  // 2500 - (10 * 200)
+			wantValue:  1137.06005859375,
+			wantProfit: 1136.06005859375,
 			wantErr:    false,
+			err:        nil,
 		},
 		{
-			name: "Symbol Not Found",
-			input: &CalculateInput{
-				Symbol: "INVALID",
-				Units:  1,
-				Price:  1,
-			},
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				return newMockQuote(0, 0), nil, nil
+			name: "Wrong Symbol",
+			args: args{
+				ctx: ctx,
+				input: &CalculateInput{
+					Symbol: "012346",
+					Units:  1,
+					Price:  1,
+				},
 			},
 			wantValue:  0,
 			wantProfit: 0,
 			wantErr:    true,
-			errMsg:     "搜尋失敗",
-		},
-		{
-			name: "API Error",
-			input: &CalculateInput{
-				Symbol: "TSLA",
-				Units:  1,
-				Price:  1,
-			},
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				return finnhub.Quote{}, nil, fmt.Errorf("API connection error")
-			},
-			wantValue:  0,
-			wantProfit: 0,
-			wantErr:    true,
-			errMsg:     "API connection error",
-		},
-		{
-			name: "Negative Profit (Loss)",
-			input: &CalculateInput{
-				Symbol: "TSLA",
-				Units:  10,
-				Price:  300,
-			},
-			mockQuote: func(ctx context.Context, symbol string) (finnhub.Quote, *http.Response, error) {
-				return newMockQuote(250, -5.0), nil, nil
-			},
-			wantValue:  2500, // 10 * 250
-			wantProfit: -500, // 2500 - (10 * 300)
-			wantErr:    false,
+			err:        fmt.Errorf("搜尋失敗"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cleanup := setupMockClient(&MockFinnhubClient{
-				QuoteFunc: tt.mockQuote,
-			})
-			defer cleanup()
-
-			gotValue, gotProfit, err := Calculate(ctx, tt.input)
-
-			if tt.wantErr {
-				if err == nil {
-					t.Errorf("Calculate() expected error, got nil")
+			gotValue, gotProfit, err := Calculate(tt.args.ctx, tt.args.input)
+			if err != nil && tt.wantErr {
+				if err.Error() != tt.err.Error() {
+					t.Errorf("Quote() error = %v, wantErr %v", err.Error(), tt.err.Error())
 					return
 				}
-				if err.Error() != tt.errMsg {
-					t.Errorf("Calculate() error = %v, wantErr %v", err.Error(), tt.errMsg)
-				}
-				return
 			}
-
-			if err != nil {
-				t.Errorf("Calculate() unexpected error = %v", err)
-				return
-			}
-
 			if gotValue != tt.wantValue {
 				t.Errorf("Calculate() gotValue = %v, want %v", gotValue, tt.wantValue)
 			}

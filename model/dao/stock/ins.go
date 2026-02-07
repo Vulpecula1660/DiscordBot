@@ -48,7 +48,7 @@ func Ins(ctx context.Context, tx *dbSQL.Tx, input *dto.Stock) (err error) {
 		_, err = tx.ExecContext(ctx, sql, params...)
 	}
 	if err != nil {
-		return fmt.Errorf("failed to insert stock record: %w", err)
+		return fmt.Errorf("ins錯誤 error: %v, sql: %v, params: %v ", err, sql, params)
 	}
 
 	return err

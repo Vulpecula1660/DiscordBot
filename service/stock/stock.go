@@ -23,7 +23,7 @@ func Quote(ctx context.Context, message string) (string, error) {
 
 	finnhubClient := GetConn("finnhub")
 
-	res, _, err := finnhubClient.Quote(ctx, symbol)
+	res, _, err := finnhubClient.Quote(ctx).Symbol(symbol).Execute()
 	if err != nil {
 		logger.Error("查詢股票價格失敗", "symbol", symbol, "error", err)
 		return "", err
@@ -47,7 +47,7 @@ func GetChange(ctx context.Context, stock string) (float32, error) {
 
 	symbol := strings.ToUpper(stock)
 
-	res, _, err := finnhubClient.Quote(ctx, symbol)
+	res, _, err := finnhubClient.Quote(ctx).Symbol(symbol).Execute()
 
 	if err != nil {
 		return 0, err
@@ -73,7 +73,7 @@ func Calculate(ctx context.Context, input *CalculateInput) (value, profit float6
 
 	finnhubClient := GetConn("finnhub")
 
-	res, _, err := finnhubClient.Quote(ctx, input.Symbol)
+	res, _, err := finnhubClient.Quote(ctx).Symbol(input.Symbol).Execute()
 	if err != nil {
 		return 0, 0, err
 	}

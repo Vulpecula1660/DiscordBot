@@ -6,9 +6,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
 	"time"
-
-	"discordBot/pkg/config"
 )
 
 // HTTPClient 提供一個配置好的HTTP客戶端
@@ -74,9 +74,9 @@ func NewHTTPClient(options ...Option) *HTTPClient {
 
 // NewHTTPClientWithEnv 創建一個從環境變量讀取配置的HTTP客戶端
 func NewHTTPClientWithEnv(prefix string) *HTTPClient {
-	timeout := config.GetEnvDuration(prefix+"_HTTP_TIMEOUT", 30*time.Second)
-	maxIdleConns := config.GetEnvInt(prefix+"_HTTP_MAX_IDLE_CONNS", 100)
-	idleConnTimeout := config.GetEnvDuration(prefix+"_HTTP_IDLE_CONN_TIMEOUT", 90*time.Second)
+	timeout := getEnvDuration(prefix+"_HTTP_TIMEOUT", 30*time.Second)
+	maxIdleConns := getEnvInt(prefix+"_HTTP_MAX_IDLE_CONNS", 100)
+	idleConnTimeout := getEnvDuration(prefix+"_HTTP_IDLE_CONN_TIMEOUT", 90*time.Second)
 
 	return NewHTTPClient(
 		WithTimeout(timeout),
@@ -132,6 +132,26 @@ func (c *HTTPClient) doRequest(req *http.Request) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+// getEnvInt 從環境變量獲取整數值
+func getEnvInt(key string, defaultVal int) int {
+	if val := os.Getenv(key); val != "" {
+		if intVal, err := strconv.Atoi(val); err == nil {
+			return intVal
+		}
+	}
+	return defaultVal
+}
+
+// getEnvDuration 從環境變量獲取時間值
+func getEnvDuration(key string, defaultVal time.Duration) time.Duration {
+	if val := os.Getenv(key); val != "" {
+		if duration, err := time.ParseDuration(val); err == nil {
+			return duration
+		}
+	}
+	return defaultVal
 }
 
 // ValidateURL 驗證URL是否有效

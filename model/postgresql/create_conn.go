@@ -4,12 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
-
-	"discordBot/pkg/config"
 )
 
 var (
@@ -71,10 +70,10 @@ func createConn(dbName string) (*sql.DB, error) {
 	}
 
 	// 配置連接池
-	db.SetMaxOpenConns(config.GetEnvInt("DB_MAX_OPEN_CONNS", 25))
-	db.SetMaxIdleConns(config.GetEnvInt("DB_MAX_IDLE_CONNS", 10))
-	db.SetConnMaxLifetime(config.GetEnvDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute))
-	db.SetConnMaxIdleTime(config.GetEnvDuration("DB_CONN_MAX_IDLE_TIME", 10*time.Minute))
+	db.SetMaxOpenConns(getEnvInt("DB_MAX_OPEN_CONNS", 25))
+	db.SetMaxIdleConns(getEnvInt("DB_MAX_IDLE_CONNS", 10))
+	db.SetConnMaxLifetime(getEnvDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute))
+	db.SetConnMaxIdleTime(getEnvDuration("DB_CONN_MAX_IDLE_TIME", 10*time.Minute))
 
 	// 驗證連線
 	if err := db.Ping(); err != nil {
@@ -102,4 +101,24 @@ func CloseAll() error {
 		return fmt.Errorf("errors closing database connections: %v", errs)
 	}
 	return nil
+}
+
+// getEnvInt : 從環境變量獲取整數值
+func getEnvInt(key string, defaultVal int) int {
+	if val := os.Getenv(key); val != "" {
+		if intVal, err := strconv.Atoi(val); err == nil {
+			return intVal
+		}
+	}
+	return defaultVal
+}
+
+// getEnvDuration : 從環境變量獲取時間值
+func getEnvDuration(key string, defaultVal time.Duration) time.Duration {
+	if val := os.Getenv(key); val != "" {
+		if duration, err := time.ParseDuration(val); err == nil {
+			return duration
+		}
+	}
+	return defaultVal
 }
